@@ -1,0 +1,6 @@
+[workspace]
+members = [
+  "example",
+  "turbocharger",
+  "turbocharger-impl",
+]

@@ -2,7 +2,7 @@
 
 ## > WORK IN PROGRESS <
 
-A seamless RPC layer for connecting a web frontend to a Rust backend server via WASM.
+A seamless, fully typed RPC layer for connecting a web frontend to a Rust backend server via WASM.
 
 `#[turbocharger::turbocharge]` automatically makes _backend_ async functions, e.g.:
 

@@ -1,0 +1,15 @@
+[package]
+authors = ["trevyn <trevyn-git@protonmail.com>"]
+description = "Internal implementation details for Turbocharger."
+edition = "2018"
+license = "MIT OR Apache-2.0 OR CC0-1.0"
+name = "turbocharger-impl"
+repository = "https://github.com/trevyn/turbocharger"
+version = "0.1.0"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+quote = "1"
+syn = {version = "1", features = ["extra-traits", "full"]}

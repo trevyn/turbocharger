@@ -1,0 +1,15 @@
+[package]
+authors = ["trevyn <trevyn-git@protonmail.com>"]
+categories = ["asynchronous", "web-programming", "wasm"]
+description = "A seamless, fully typed RPC layer for connecting a web frontend to a Rust backend server via WASM."
+edition = "2018"
+keywords = ["async", "web", "wasm"]
+license = "MIT OR Apache-2.0 OR CC0-1.0"
+name = "turbocharger"
+readme = "../README.md"
+repository = "https://github.com/trevyn/turbocharger"
+version = "0.1.0"
+
+[dependencies]
+serde = {version = "1", features = ["derive"]}
+turbocharger-impl = {path = "../turbocharger-impl", version = "=0.1.0"}
