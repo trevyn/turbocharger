@@ -4,7 +4,7 @@
 
 A seamless RPC layer for connecting a web frontend to a Rust backend server via WASM.
 
-`#[turbocharger::turbocharge]` automatically makes *backend* async functions, e.g.:
+`#[turbocharger::turbocharge]` automatically makes _backend_ async functions, e.g.:
 
 ```rust
 #[turbocharger::turbocharge]
@@ -15,7 +15,7 @@ async fn get_person(rowid: i64) -> Person {
 }
 ```
 
-available to your JS/TS *frontend* as an async function:
+available to your JS/TS _frontend_ as an async function:
 
 ```js
 let person = await wasm.get_person(1);
@@ -46,3 +46,5 @@ Your backend function should be included in both your backend target and your `w
 - Streaming responses with `futures::stream`
 - `Vec<T>` types, see [wasm-bindgen#111](https://github.com/rustwasm/wasm-bindgen/issues/111)
 - Anything [`tarpc`](https://github.com/google/tarpc) does, particularly around timeouts, cancellation, etc.
+
+### License: MIT OR Apache-2.0 OR CC0-1.0 (public domain)
