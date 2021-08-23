@@ -1,0 +1,26 @@
+[package]
+authors = ["trevyn <trevyn-git@protonmail.com>"]
+description = "Turbocharger minimal example."
+edition = "2018"
+name = "example-minimal"
+publish = false
+version = "0.1.0"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "example-minimal"
+required-features = ["server"]
+
+[features]
+server = ["tokio", "warp", "turbocharger/warp"]
+
+[dependencies]
+futures = "0.3"
+turbocharger = {path = "../turbocharger", version = "0.1"}
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+
+tokio = {version = "1", features = ["full"], optional = true}
+warp = {version = "0.3", optional = true}
