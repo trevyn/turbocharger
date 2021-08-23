@@ -1,4 +1,4 @@
-import wasminit, * as wasm from "../../pkg";
+import turbocharger_init, * as tc from "./turbocharger_generated";
 
 function append(t) {
  document.body.appendChild(document.createTextNode(t));
@@ -6,9 +6,9 @@ function append(t) {
 
 async function main() {
  append("Hello from JS.");
- await wasminit("dist/example-minimal/index_bg.wasm");
- append(await wasm.get_wasm_greeting());
- // append("Hello from backend.");
+ await turbocharger_init("turbocharger_generated/index_bg.wasm");
+ append(await tc.wasm_get_greeting());
+ append(await tc.backend_get_greeting());
 }
 
 main();

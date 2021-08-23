@@ -10,6 +10,7 @@ export default {
    "@emily-curry/snowpack-plugin-wasm-pack",
    {
     projectPath: "..",
+    outDir: "frontend/src/turbocharger_generated",
    },
   ],
  ],
