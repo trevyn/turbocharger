@@ -39,6 +39,10 @@ Parameters and return values of any types that implement `Serialize`/`Deserializ
 
 Your backend function should be included in both your backend target and your `wasm-pack`/`wasm32-unknown-unknown` target. The `#[turbocharge]` macro effectively generates two implementations of this function; one for the backend that contains the function body you provide as well as the backend WebSocket glue, and one for the frontend WASM module that only provides the frontend WebSocket glue.
 
+## Server
+
+Currently, the server side of Turbocharger is batteries-included based on `tokio` and `warp`, but this could be decoupled in the future.
+
 ## To Do / Future Directions
 
 - Better WebSocket status management / reconnect
