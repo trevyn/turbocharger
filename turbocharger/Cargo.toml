@@ -13,5 +13,7 @@ version = "0.1.0"
 [dependencies]
 serde = {version = "1", features = ["derive"]}
 turbocharger-impl = {path = "../turbocharger-impl", version = "=0.1.0"}
-warp = {version = "0.3", optional = true}
 wasm-bindgen = "0.2"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+warp = "0.3"
