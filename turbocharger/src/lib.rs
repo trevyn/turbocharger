@@ -2,8 +2,11 @@
 pub use async_trait::async_trait;
 pub use bincode;
 pub use serde;
+#[cfg(target_arch = "wasm32")]
+use std::{cell::RefCell, collections::HashMap};
 #[cfg(not(target_arch = "wasm32"))]
 pub use typetag;
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -14,11 +17,32 @@ pub trait RPC {
 }
 
 #[cfg(target_arch = "wasm32")]
+#[derive(Default)]
+struct Globals {
+ channel_tx: Option<futures::channel::mpsc::UnboundedSender<Vec<u8>>>,
+ next_txid: i64,
+ senders: HashMap<i64, futures::channel::mpsc::UnboundedSender<Vec<u8>>>,
+}
+
+#[cfg(target_arch = "wasm32")]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct Response {
+ pub txid: i64,
+ pub resp: Vec<u8>,
+}
+
+#[cfg(target_arch = "wasm32")]
+thread_local! {
+ static G: RefCell<Globals> = RefCell::new(Globals::default());
+}
+
+#[cfg(target_arch = "wasm32")]
 #[macro_export]
 macro_rules! console_log {
   ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
  }
 
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 extern "C" {
  #[wasm_bindgen(js_namespace = console)]
@@ -39,5 +63,50 @@ async fn accept_connection(_ws: warp::ws::WebSocket) {}
 
 #[cfg(target_arch = "wasm32")]
 pub async fn _make_rpc_call(s: String) -> Vec<u8> {
+ console_log!("making rpc call, no parameters.");
+ // send over websocket
  vec![]
+}
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen(start)]
+pub async fn start() -> Result<(), JsValue> {
+ use futures::{SinkExt, StreamExt};
+
+ console_error_panic_hook::set_once();
+
+ let (channel_tx, mut channel_rx) = futures::channel::mpsc::unbounded();
+
+ G.with(|g| {
+  g.borrow_mut().channel_tx = Some(channel_tx);
+ });
+
+ console_log!("connecting");
+
+ let (_ws, wsio) =
+  ws_stream_wasm::WsMeta::connect("ws://127.0.0.1:8080/socket", None).await.unwrap();
+
+ console_log!("connected");
+
+ let (mut ws_tx, mut ws_rx) = wsio.split();
+
+ wasm_bindgen_futures::spawn_local(async move {
+  while let Some(msg) = ws_rx.next().await {
+   if let ws_stream_wasm::WsMessage::Binary(msg) = msg {
+    let Response { txid, resp } = bincode::deserialize(&msg).unwrap();
+    let mut sender = G.with(|g| -> _ { g.borrow().senders.get(&txid).unwrap().clone() });
+    sender.send(resp).await.unwrap();
+   }
+  }
+  console_log!("ws_rx ENDED");
+ });
+
+ wasm_bindgen_futures::spawn_local(async move {
+  while let Some(msg) = channel_rx.next().await {
+   ws_tx.send(ws_stream_wasm::WsMessage::Binary(msg)).await.unwrap();
+  }
+  console_log!("rx ENDED");
+ });
+
+ Ok(())
 }
