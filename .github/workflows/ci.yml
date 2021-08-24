@@ -1,0 +1,53 @@
+name: ci
+
+on: [workflow_dispatch, push]
+      
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  checklinks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: lycheeverse/lychee-action@v1
+        id: lychee
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: --verbose --no-progress --headers="accept=text/html"
+
+      - name: Fail if there were link-check errors
+        run: exit ${{ steps.lychee.outputs.exit_code }}
+
+  build:
+    name: build ${{ matrix.os }} rust ${{ matrix.rust }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-11.0]
+        rust: [stable, beta, nightly]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: ${{ matrix.rust }}
+
+      - run: npm install
+        working-directory: 'example-minimal/frontend'
+        
+      - run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - run: cargo build --lib --target=wasm32-unknown-unknown --release
+        working-directory: 'example-minimal'
+
+      - run: npm run build
+        working-directory: 'example-minimal/frontend'
+
+      - run: cargo build
+        working-directory: 'example-minimal'
