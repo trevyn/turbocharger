@@ -16,7 +16,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          args: --verbose --no-progress --headers="accept=text/html"
+          args: --verbose --no-progress --exclude_all_private --headers="accept=text/html"
 
       - name: Fail if there were link-check errors
         run: exit ${{ steps.lychee.outputs.exit_code }}
@@ -37,6 +37,7 @@ jobs:
       - uses: hecrj/setup-rust-action@v1
         with:
           rust-version: ${{ matrix.rust }}
+          targets: wasm32-unknown-unknown
 
       - run: npm install
         working-directory: 'example-minimal/frontend'
