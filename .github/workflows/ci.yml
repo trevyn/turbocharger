@@ -1,7 +1,10 @@
 name: ci
 
-on: [workflow_dispatch, push]
-      
+on:
+  push:
+  pull_request:
+  schedule: [cron: '40 2 * * *']
+
 env:
   CARGO_TERM_COLOR: always
 
