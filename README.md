@@ -36,7 +36,7 @@ let person = await backend.get_greeting();
 - serializes function parameters and return values with `serde` and `bincode`
 - handles multiplexing and dispatch
 
-Parameters and return values of any types that are compatible with `wasm-bindgen` should work, which includes most basic types and `struct`s with compatible fields but [not yet](https://github.com/rustwasm/wasm-bindgen/pull/2631) `enum` variants with values, which would come out the other end as TypeScript discriminated unions.
+Parameters and return values of any types that are [supported](https://rustwasm.github.io/docs/wasm-bindgen/reference/types.html) by `wasm-bindgen` should work, which includes most basic types and `struct`s with supported fields but [not yet](https://github.com/rustwasm/wasm-bindgen/pull/2631) `enum` variants with values, which would come out the other end as TypeScript discriminated unions.
 
 ## Complete Example: A full SQLite-powered backend with frontend bindings
 
