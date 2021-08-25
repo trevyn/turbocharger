@@ -92,10 +92,13 @@ async fn accept_connection(ws: warp::ws::WebSocket) {
   // eprintln!("got msg: {:?}", std::str::from_utf8(msg.as_bytes()).unwrap());
 
   let s = std::str::from_utf8(msg.as_bytes()).unwrap();
+  eprintln!("s is {:?}", s);
+  let event: Box<dyn RPC> = serde_json::from_str(s).unwrap();
 
-  let event: Box<dyn RPC + Send> = serde_json::from_str(s).unwrap();
+  let response = event.execute().await;
+  eprintln!("response is {:?}", response);
 
-  dbg!(event.execute().await);
+  tx.send(warp::ws::Message::binary(response)).unwrap();
 
   // let WrappedCommand { txid, cmd } = bincode::deserialize(msg.as_bytes()).unwrap();
   // eprintln!("txid {}: {:?}", txid, cmd);
@@ -149,9 +152,10 @@ pub async fn start() -> Result<(), JsValue> {
  wasm_bindgen_futures::spawn_local(async move {
   while let Some(msg) = ws_rx.next().await {
    if let ws_stream_wasm::WsMessage::Binary(msg) = msg {
-    let Response { txid, resp } = bincode::deserialize(&msg).unwrap();
-    let mut sender = G.with(|g| -> _ { g.borrow().senders.get(&txid).unwrap().clone() });
-    sender.send(resp).await.unwrap();
+    console_log!("got msg: {:?}", msg);
+    // let Response { txid, resp } = bincode::deserialize(&msg).unwrap();
+    // let mut sender = G.with(|g| -> _ { g.borrow().senders.get(&txid).unwrap().clone() });
+    // sender.send(resp).await.unwrap();
    }
   }
   console_log!("ws_rx ENDED");
