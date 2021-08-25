@@ -43,30 +43,6 @@ impl wasm_only {
 }
 
 //#[backend]
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen(js_class = backend)]
-impl backend {
- #[wasm_bindgen]
- pub async fn get_remote_greeting() -> String {
-  {
-   let t = ::turbocharger::_Transaction::new();
-   let txid = t.txid;
-   let req = ::turbocharger::bincode::serialize(&_tc_rpc_req_get_remote_greeting {
-    typetag_const_one: 1,
-    dispatch_name: "get_remote_greeting",
-    txid: t.txid,
-    params: ("foo".to_owned(),),
-   })
-   .unwrap();
-   let response = t.run(req).await;
-   let _tc_res_get_remote_greeting { result, .. } =
-    ::turbocharger::bincode::deserialize(&response).unwrap();
-   console_log!("tx {}: {:?}", txid, result);
-   result
-  }
- }
-}
-
 #[cfg(not(target_arch = "wasm32"))]
 pub async fn get_remote_greeting() -> String {
  eprintln!("get_remote_greeting called");
@@ -79,9 +55,9 @@ mod _tc_get_remote_greeting {
  use ::turbocharger::typetag;
  #[::turbocharger::typetag::serde(name = "get_remote_greeting")]
  #[::turbocharger::async_trait]
- impl ::turbocharger::RPC for super::_tc_req_get_remote_greeting {
+ impl ::turbocharger::RPC for super::_tc_dispatch_get_remote_greeting {
   async fn execute(&self) -> Vec<u8> {
-   let response = super::_tc_res_get_remote_greeting {
+   let response = super::_tc_resp_get_remote_greeting {
     txid: self.txid,
     result: super::get_remote_greeting().await,
    };
@@ -90,10 +66,34 @@ mod _tc_get_remote_greeting {
  }
 }
 
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen(js_class = backend)]
+impl backend {
+ #[wasm_bindgen]
+ pub async fn get_remote_greeting() -> String {
+  {
+   let t = ::turbocharger::_Transaction::new();
+   let txid = t.txid;
+   let req = ::turbocharger::bincode::serialize(&_tc_req_get_remote_greeting {
+    typetag_const_one: 1,
+    dispatch_name: "get_remote_greeting",
+    txid: t.txid,
+    params: ("foo".to_owned(),),
+   })
+   .unwrap();
+   let response = t.run(req).await;
+   let _tc_resp_get_remote_greeting { result, .. } =
+    ::turbocharger::bincode::deserialize(&response).unwrap();
+   console_log!("tx {}: {:?}", txid, result);
+   result
+  }
+ }
+}
+
 #[allow(non_camel_case_types)]
 #[derive(::turbocharger::serde::Serialize, ::turbocharger::serde::Deserialize)]
 #[serde(crate = "::turbocharger::serde")]
-struct _tc_rpc_req_get_remote_greeting {
+struct _tc_req_get_remote_greeting {
  typetag_const_one: i64,
  dispatch_name: &'static str,
  txid: i64,
@@ -103,7 +103,7 @@ struct _tc_rpc_req_get_remote_greeting {
 #[allow(non_camel_case_types)]
 #[derive(::turbocharger::serde::Serialize, ::turbocharger::serde::Deserialize, Debug)]
 #[serde(crate = "::turbocharger::serde")]
-struct _tc_req_get_remote_greeting {
+struct _tc_dispatch_get_remote_greeting {
  txid: i64,
  params: (String,),
 }
@@ -111,7 +111,7 @@ struct _tc_req_get_remote_greeting {
 #[allow(non_camel_case_types)]
 #[derive(::turbocharger::serde::Serialize, ::turbocharger::serde::Deserialize)]
 #[serde(crate = "::turbocharger::serde")]
-struct _tc_res_get_remote_greeting {
+struct _tc_resp_get_remote_greeting {
  txid: i64,
  result: String,
 }
@@ -122,11 +122,11 @@ struct _tc_res_get_remote_greeting {
 #[tokio::main]
 async fn main() {
  let event: &dyn ::turbocharger::RPC =
-  &_tc_req_get_remote_greeting { txid: 42, params: ("foo".to_string(),) };
+  &_tc_dispatch_get_remote_greeting { txid: 42, params: ("foo".to_string(),) };
  let b = ::turbocharger::bincode::serialize(&event).unwrap();
  println!("{:?}", b);
 
- let event = _tc_rpc_req_get_remote_greeting {
+ let event = _tc_req_get_remote_greeting {
   typetag_const_one: 1,
   dispatch_name: "get_remote_greeting",
   txid: 42,

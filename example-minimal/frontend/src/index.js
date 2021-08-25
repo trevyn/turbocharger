@@ -18,27 +18,10 @@ async function main() {
  append(await backend.get_remote_greeting());
  append(await backend.get_remote_greeting());
  append(await backend.get_remote_greeting());
- backend.get_remote_greeting().then((r) => {
-  append(r);
- });
- backend.get_remote_greeting().then((r) => {
-  append(r);
- });
- backend.get_remote_greeting().then((r) => {
-  append(r);
- });
- backend.get_remote_greeting().then((r) => {
-  append(r);
- });
- backend.get_remote_greeting().then((r) => {
-  append(r);
- });
- backend.get_remote_greeting().then((r) => {
-  append(r);
- });
- backend.get_remote_greeting().then((r) => {
-  append(r);
- });
+ for (let x = 0; x < 100; x++)
+  backend.get_remote_greeting().then((r) => {
+   append(r);
+  });
 }
 
 main();
