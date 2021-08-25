@@ -59,13 +59,49 @@ pub fn warp_routes() -> warp::filters::BoxedFilter<(impl warp::Reply,)> {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-async fn accept_connection(_ws: warp::ws::WebSocket) {}
+async fn accept_connection(ws: warp::ws::WebSocket) {
+ use futures::{SinkExt, StreamExt, TryFutureExt};
+
+ eprintln!("accept_connection");
+
+ let (mut ws_tx, mut ws_rx) = ws.split();
+ let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+ let mut rx = tokio_stream::wrappers::UnboundedReceiverStream::new(rx);
+
+ tokio::task::spawn(async move {
+  while let Some(msg) = rx.next().await {
+   ws_tx
+    .send(msg)
+    .unwrap_or_else(|e| {
+     eprintln!("websocket send error: {}", e);
+    })
+    .await;
+  }
+ });
+
+ while let Some(result) = ws_rx.next().await {
+  let msg = match result {
+   Ok(msg) => msg,
+   Err(e) => {
+    eprintln!("websocket error: {}", e);
+    break;
+   }
+  };
+
+  eprintln!("got msg: {:?}", msg);
+
+  // let WrappedCommand { txid, cmd } = bincode::deserialize(msg.as_bytes()).unwrap();
+  // eprintln!("txid {}: {:?}", txid, cmd);
+ }
+
+ eprintln!("accept_connection completed")
+}
 
 #[cfg(target_arch = "wasm32")]
 pub async fn _make_rpc_call(s: String) -> Vec<u8> {
  console_log!("making rpc call, no parameters.");
  // send over websocket
- vec![]
+ vec![42]
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -84,7 +120,7 @@ pub async fn start() -> Result<(), JsValue> {
  console_log!("connecting");
 
  let (_ws, wsio) =
-  ws_stream_wasm::WsMeta::connect("ws://127.0.0.1:8080/socket", None).await.unwrap();
+  ws_stream_wasm::WsMeta::connect("ws://127.0.0.1:8080/turbocharger_socket", None).await.unwrap();
 
  console_log!("connected");
 

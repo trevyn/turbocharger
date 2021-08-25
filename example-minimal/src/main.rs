@@ -2,6 +2,15 @@
 use wasm_bindgen::prelude::*;
 //use turbocharger::prelude::*;
 //use turbocharger::{wasm_only, backend, server_only};
+#[cfg(target_arch = "wasm32")]
+use turbocharger::console_log;
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+extern "C" {
+ #[wasm_bindgen(js_namespace = console)]
+ fn log(s: &str);
+}
 
 #[cfg(target_arch = "wasm32")]
 #[allow(non_camel_case_types)]
@@ -40,11 +49,10 @@ impl backend {
  #[wasm_bindgen]
  pub async fn get_remote_greeting() -> String {
   {
-   let retval: String = turbocharger::bincode::deserialize(
-    ::turbocharger::_make_rpc_call("get_remote_greeting".to_string()).await.as_ref(),
-   )
-   .unwrap();
-   retval
+   let result = ::turbocharger::_make_rpc_call("get_remote_greeting".to_string()).await; //.as_ref();
+   console_log!("{:?}", result);
+   // let retval: String = turbocharger::bincode::deserialize(result).unwrap();
+   "result".to_string() //result
   }
  }
 }
