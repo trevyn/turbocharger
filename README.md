@@ -33,7 +33,7 @@ let person = await backend.get_greeting();
 
 - auto-generates a frontend WASM module with `wasm-pack` / `wasm-bindgen`
 - creates a WebSocket connection between the WASM module and the backend server
-- serializes function parameters and return values with `serde` and `bincode`
+- serializes function parameters and return values with `bincode`
 - handles multiplexing and dispatch
 
 Parameters and return values of any types that are [supported](https://rustwasm.github.io/docs/wasm-bindgen/reference/types.html) by `wasm-bindgen` should work, which includes most basic types and `struct`s with supported fields but [not yet](https://github.com/rustwasm/wasm-bindgen/pull/2631) `enum` variants with values, which would come out the other end as TypeScript discriminated unions.
@@ -91,7 +91,7 @@ Your `main.rs` file is the entry point for both the server `bin` target and a `w
 
 ## Server
 
-Currently, the server side of Turbocharger is batteries-included based on `warp`, but this could be decoupled in the future.
+Currently, the server side is batteries-included with `warp`, but this could be decoupled in the future.
 
 ## WASM functions
 
