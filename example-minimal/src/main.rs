@@ -49,7 +49,8 @@ impl backend {
  #[wasm_bindgen]
  pub async fn get_remote_greeting() -> String {
   {
-   let result = ::turbocharger::_make_rpc_call("get_remote_greeting".to_string()).await; //.as_ref();
+   let result =
+    ::turbocharger::_make_rpc_call(r#"{"_tc_get_remote_greeting":[]}"#.to_string()).await; //.as_ref();
    console_log!("{:?}", result);
    // let retval: String = turbocharger::bincode::deserialize(result).unwrap();
    "result".to_string() //result
@@ -68,18 +69,22 @@ mod _tc_get_remote_greeting {
  use ::turbocharger::typetag;
  #[::turbocharger::typetag::serde(name = "_tc_get_remote_greeting")]
  #[::turbocharger::async_trait]
- impl ::turbocharger::RPC for super::_tc_get_remote_greeting_return {
+ impl ::turbocharger::RPC for super::_tc_get_remote_greeting_params {
   async fn execute(&self) -> Vec<u8> {
    ::turbocharger::bincode::serialize(&super::get_remote_greeting().await).unwrap()
   }
  }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 #[allow(non_camel_case_types)]
 #[derive(::turbocharger::serde::Serialize, ::turbocharger::serde::Deserialize)]
 #[serde(crate = "::turbocharger::serde")]
-struct _tc_get_remote_greeting_return(String);
+struct _tc_get_remote_greeting_params();
+
+#[allow(non_camel_case_types)]
+#[derive(::turbocharger::serde::Serialize, ::turbocharger::serde::Deserialize)]
+#[serde(crate = "::turbocharger::serde")]
+struct _tc_get_remote_greeting_result(String);
 
 //#[server_only]
 #[cfg(not(target_arch = "wasm32"))]
@@ -87,13 +92,13 @@ struct _tc_get_remote_greeting_return(String);
 #[tokio::main]
 async fn main() {
  eprintln!("{:?}", get_remote_greeting().await);
- let event: &dyn ::turbocharger::RPC = &_tc_get_remote_greeting_return("foo".to_string());
+ let event: &dyn ::turbocharger::RPC = &_tc_get_remote_greeting_params();
  let json = serde_json::to_string(&event).unwrap();
  println!("{}", json);
  eprintln!("deserializing...");
 
  let event: Box<dyn ::turbocharger::RPC> =
-  serde_json::from_str(r#"{"_tc_get_remote_greeting":"foo"}"#).unwrap();
+  serde_json::from_str(r#"{"_tc_get_remote_greeting":[]}"#).unwrap();
  dbg!(event.execute().await);
 
  eprintln!("Serving on http://127.0.0.1:8080");

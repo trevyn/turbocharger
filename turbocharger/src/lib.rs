@@ -13,7 +13,7 @@ use wasm_bindgen::prelude::*;
 #[cfg(not(target_arch = "wasm32"))]
 #[typetag::serde]
 #[async_trait]
-pub trait RPC {
+pub trait RPC: Send + Sync {
  async fn execute(&self) -> Vec<u8>;
 }
 
@@ -61,7 +61,7 @@ pub fn warp_routes() -> warp::filters::BoxedFilter<(impl warp::Reply,)> {
 
 #[cfg(not(target_arch = "wasm32"))]
 async fn accept_connection(ws: warp::ws::WebSocket) {
- use futures::{SinkExt, StreamExt, TryFutureExt};
+ use futures::TryFutureExt;
 
  eprintln!("accept_connection");
 
@@ -89,7 +89,13 @@ async fn accept_connection(ws: warp::ws::WebSocket) {
    }
   };
 
-  eprintln!("got msg: {:?}", msg);
+  // eprintln!("got msg: {:?}", std::str::from_utf8(msg.as_bytes()).unwrap());
+
+  let s = std::str::from_utf8(msg.as_bytes()).unwrap();
+
+  let event: Box<dyn RPC + Send> = serde_json::from_str(s).unwrap();
+
+  dbg!(event.execute().await);
 
   // let WrappedCommand { txid, cmd } = bincode::deserialize(msg.as_bytes()).unwrap();
   // eprintln!("txid {}: {:?}", txid, cmd);
