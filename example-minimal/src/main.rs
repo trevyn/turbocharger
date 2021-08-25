@@ -50,6 +50,7 @@ impl backend {
  pub async fn get_remote_greeting() -> String {
   {
    let t = ::turbocharger::_Transaction::new();
+   let txid = t.txid;
    let req = ::turbocharger::bincode::serialize(&_tc_rpc_req_get_remote_greeting {
     typetag_const_one: 1,
     dispatch_name: "get_remote_greeting",
@@ -57,8 +58,11 @@ impl backend {
     params: ("foo".to_owned(),),
    })
    .unwrap();
-   console_log!("myresp{:?}", t.run(req).await);
-   "result".to_string()
+   let response = t.run(req).await;
+   let _tc_res_get_remote_greeting { result, .. } =
+    ::turbocharger::bincode::deserialize(&response).unwrap();
+   console_log!("tx {}: {:?}", txid, result);
+   result
   }
  }
 }
@@ -66,6 +70,7 @@ impl backend {
 #[cfg(not(target_arch = "wasm32"))]
 pub async fn get_remote_greeting() -> String {
  eprintln!("get_remote_greeting called");
+ tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
  "Hello from backend.".to_string()
 }
 
@@ -76,8 +81,6 @@ mod _tc_get_remote_greeting {
  #[::turbocharger::async_trait]
  impl ::turbocharger::RPC for super::_tc_req_get_remote_greeting {
   async fn execute(&self) -> Vec<u8> {
-   eprintln!("dta: {:?}", self);
-
    let response = super::_tc_res_get_remote_greeting {
     txid: self.txid,
     result: super::get_remote_greeting().await,

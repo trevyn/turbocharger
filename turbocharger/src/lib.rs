@@ -88,11 +88,12 @@ async fn accept_connection(ws: warp::ws::WebSocket) {
     break;
    }
   };
-
-  let target_func: Box<dyn RPC> = bincode::deserialize(msg.as_bytes()).unwrap();
-  let response = target_func.execute().await;
-  eprintln!("response is {:?}", response);
-  tx.send(warp::ws::Message::binary(response)).unwrap();
+  let tx_clone = tx.clone();
+  tokio::task::spawn(async move {
+   let target_func: Box<dyn RPC> = bincode::deserialize(msg.as_bytes()).unwrap();
+   let response = target_func.execute().await;
+   tx_clone.send(warp::ws::Message::binary(response)).unwrap();
+  });
  }
 
  eprintln!("accept_connection completed")
@@ -130,6 +131,8 @@ impl _Transaction {
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(start)]
 pub async fn start() -> Result<(), JsValue> {
+ use std::convert::TryInto;
+
  console_error_panic_hook::set_once();
 
  let (channel_tx, mut channel_rx) = futures::channel::mpsc::unbounded();
@@ -150,10 +153,9 @@ pub async fn start() -> Result<(), JsValue> {
  wasm_bindgen_futures::spawn_local(async move {
   while let Some(msg) = ws_rx.next().await {
    if let ws_stream_wasm::WsMessage::Binary(msg) = msg {
-    console_log!("got msg: {:?}", msg);
-    // let Response { txid, resp } = bincode::deserialize(&msg).unwrap();
-    // let mut sender = G.with(|g| -> _ { g.borrow().senders.get(&txid).unwrap().clone() });
-    // sender.send(resp).await.unwrap();
+    let txid = i64::from_le_bytes(msg[0..8].try_into().unwrap());
+    let mut sender = G.with(|g| -> _ { g.borrow().senders.get(&txid).unwrap().clone() });
+    sender.send(msg).await.unwrap();
    }
   }
   console_log!("ws_rx ENDED");
