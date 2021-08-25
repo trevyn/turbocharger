@@ -99,23 +99,32 @@ async fn accept_connection(ws: warp::ws::WebSocket) {
 }
 
 #[cfg(target_arch = "wasm32")]
-pub async fn _make_rpc_call(s: Vec<u8>) -> Vec<u8> {
- console_log!("_make_rpc_call: {:?}", s);
+pub struct _Transaction {
+ pub txid: i64,
+ channel_tx: futures::channel::mpsc::UnboundedSender<Vec<u8>>,
+ resp_rx: futures::channel::mpsc::UnboundedReceiver<Vec<u8>>,
+}
 
- let (resp_tx, mut resp_rx) = futures::channel::mpsc::unbounded();
+#[cfg(target_arch = "wasm32")]
+impl _Transaction {
+ pub fn new() -> Self {
+  let (resp_tx, resp_rx) = futures::channel::mpsc::unbounded();
 
- let (mut channel_tx, txid) = G.with(|g| -> (_, _) {
-  let mut g = g.borrow_mut();
-  let txid = g.next_txid;
-  g.senders.insert(txid, resp_tx);
-  g.next_txid += 1;
-  (g.channel_tx.clone().unwrap(), txid)
- });
+  let (channel_tx, txid) = G.with(|g| -> (_, _) {
+   let mut g = g.borrow_mut();
+   let txid = g.next_txid;
+   g.senders.insert(txid, resp_tx);
+   g.next_txid += 1;
+   (g.channel_tx.clone().unwrap(), txid)
+  });
 
- channel_tx.send(s).await.unwrap();
- // resp_rx.next().await.unwrap()
+  _Transaction { txid, channel_tx, resp_rx }
+ }
 
- vec![42]
+ pub async fn run(mut self, req: Vec<u8>) -> Vec<u8> {
+  self.channel_tx.send(req).await.unwrap();
+  self.resp_rx.next().await.unwrap()
+ }
 }
 
 #[cfg(target_arch = "wasm32")]

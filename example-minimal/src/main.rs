@@ -49,19 +49,16 @@ impl backend {
  #[wasm_bindgen]
  pub async fn get_remote_greeting() -> String {
   {
-   let result = ::turbocharger::_make_rpc_call(
-    ::turbocharger::bincode::serialize(&_tc_rpc_req_get_remote_greeting {
-     typetag_const_one: 1,
-     dispatch_name: "get_remote_greeting",
-     txid: 42,
-     params: ("foo".to_owned(),),
-    })
-    .unwrap(),
-   )
-   .await; //.as_ref();
-   console_log!("{:?}", result);
-   // let retval: String = turbocharger::bincode::deserialize(result).unwrap();
-   "result".to_string() //result
+   let t = ::turbocharger::_Transaction::new();
+   let req = ::turbocharger::bincode::serialize(&_tc_rpc_req_get_remote_greeting {
+    typetag_const_one: 1,
+    dispatch_name: "get_remote_greeting",
+    txid: t.txid,
+    params: ("foo".to_owned(),),
+   })
+   .unwrap();
+   console_log!("myresp{:?}", t.run(req).await);
+   "result".to_string()
   }
  }
 }
@@ -80,7 +77,12 @@ mod _tc_get_remote_greeting {
  impl ::turbocharger::RPC for super::_tc_req_get_remote_greeting {
   async fn execute(&self) -> Vec<u8> {
    eprintln!("dta: {:?}", self);
-   ::turbocharger::bincode::serialize(&super::get_remote_greeting().await).unwrap()
+
+   let response = super::_tc_res_get_remote_greeting {
+    txid: self.txid,
+    result: super::get_remote_greeting().await,
+   };
+   ::turbocharger::bincode::serialize(&response).unwrap()
   }
  }
 }
@@ -108,7 +110,7 @@ struct _tc_req_get_remote_greeting {
 #[serde(crate = "::turbocharger::serde")]
 struct _tc_res_get_remote_greeting {
  txid: i64,
- result: (String,),
+ result: String,
 }
 
 //#[server_only]
