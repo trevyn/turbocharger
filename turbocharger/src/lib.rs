@@ -1,6 +1,7 @@
 #[cfg(not(target_arch = "wasm32"))]
 pub use async_trait::async_trait;
 pub use bincode;
+use futures::{SinkExt, StreamExt};
 pub use serde;
 #[cfg(target_arch = "wasm32")]
 use std::{cell::RefCell, collections::HashMap};
@@ -99,16 +100,29 @@ async fn accept_connection(ws: warp::ws::WebSocket) {
 
 #[cfg(target_arch = "wasm32")]
 pub async fn _make_rpc_call(s: String) -> Vec<u8> {
- console_log!("making rpc call, no parameters.");
- // send over websocket
+ console_log!("_make_rpc_call: {:?}", s);
+
+ let (resp_tx, mut resp_rx) = futures::channel::mpsc::unbounded();
+
+ let (mut channel_tx, txid) = G.with(|g| -> (_, _) {
+  let mut g = g.borrow_mut();
+  let txid = g.next_txid;
+  g.senders.insert(txid, resp_tx);
+  g.next_txid += 1;
+  (g.channel_tx.clone().unwrap(), txid)
+ });
+
+ channel_tx.send(s.into_bytes()).await.unwrap();
+ // let wrapped_cmd = WrappedCommand { txid, cmd };
+ // channel_tx.send(bincode::serialize(&wrapped_cmd).unwrap()).await.unwrap();
+ // resp_rx.next().await.unwrap()
+
  vec![42]
 }
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(start)]
 pub async fn start() -> Result<(), JsValue> {
- use futures::{SinkExt, StreamExt};
-
  console_error_panic_hook::set_once();
 
  let (channel_tx, mut channel_rx) = futures::channel::mpsc::unbounded();
