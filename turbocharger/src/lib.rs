@@ -89,26 +89,17 @@ async fn accept_connection(ws: warp::ws::WebSocket) {
    }
   };
 
-  // eprintln!("got msg: {:?}", std::str::from_utf8(msg.as_bytes()).unwrap());
-
-  let s = std::str::from_utf8(msg.as_bytes()).unwrap();
-  eprintln!("s is {:?}", s);
-  let event: Box<dyn RPC> = serde_json::from_str(s).unwrap();
-
-  let response = event.execute().await;
+  let target_func: Box<dyn RPC> = bincode::deserialize(msg.as_bytes()).unwrap();
+  let response = target_func.execute().await;
   eprintln!("response is {:?}", response);
-
   tx.send(warp::ws::Message::binary(response)).unwrap();
-
-  // let WrappedCommand { txid, cmd } = bincode::deserialize(msg.as_bytes()).unwrap();
-  // eprintln!("txid {}: {:?}", txid, cmd);
  }
 
  eprintln!("accept_connection completed")
 }
 
 #[cfg(target_arch = "wasm32")]
-pub async fn _make_rpc_call(s: String) -> Vec<u8> {
+pub async fn _make_rpc_call(s: Vec<u8>) -> Vec<u8> {
  console_log!("_make_rpc_call: {:?}", s);
 
  let (resp_tx, mut resp_rx) = futures::channel::mpsc::unbounded();
@@ -121,9 +112,7 @@ pub async fn _make_rpc_call(s: String) -> Vec<u8> {
   (g.channel_tx.clone().unwrap(), txid)
  });
 
- channel_tx.send(s.into_bytes()).await.unwrap();
- // let wrapped_cmd = WrappedCommand { txid, cmd };
- // channel_tx.send(bincode::serialize(&wrapped_cmd).unwrap()).await.unwrap();
+ channel_tx.send(s).await.unwrap();
  // resp_rx.next().await.unwrap()
 
  vec![42]
