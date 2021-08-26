@@ -12,6 +12,20 @@ use syn::{
  Token, Type,
 };
 
+#[proc_macro_attribute]
+#[proc_macro_error]
+pub fn server_only(
+ _args: proc_macro::TokenStream,
+ input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+ let orig_fn = parse_macro_input!(input as syn::ItemFn);
+ proc_macro::TokenStream::from(quote! {
+  #[cfg(not(target_arch = "wasm32"))]
+  #[allow(dead_code)]
+  #orig_fn
+ })
+}
+
 /// Add this on a `pub async fn` to make it available (over the network) to the JS frontend.
 #[proc_macro_attribute]
 #[proc_macro_error]
@@ -23,11 +37,14 @@ pub fn backend(
 
  let orig_fn_ident = orig_fn.sig.ident.clone();
  let orig_fn_string = orig_fn_ident.to_string();
- let mod_name = Ident::new(&format!("_TC_{}", orig_fn_string), proc_macro2::Span::call_site());
+ let mod_name =
+  Ident::new(&format!("_TURBOCHARGER_{}", orig_fn_string), proc_macro2::Span::call_site());
  let dispatch =
-  Ident::new(&format!("_TC_DISPATCH_{}", orig_fn_string), proc_macro2::Span::call_site());
- let req = Ident::new(&format!("_TC_REQ_{}", orig_fn_string), proc_macro2::Span::call_site());
- let resp = Ident::new(&format!("_TC_RESP_{}", orig_fn_string), proc_macro2::Span::call_site());
+  Ident::new(&format!("_TURBOCHARGER_DISPATCH_{}", orig_fn_string), proc_macro2::Span::call_site());
+ let req =
+  Ident::new(&format!("_TURBOCHARGER_REQ_{}", orig_fn_string), proc_macro2::Span::call_site());
+ let resp =
+  Ident::new(&format!("_TURBOCHARGER_RESP_{}", orig_fn_string), proc_macro2::Span::call_site());
 
  proc_macro::TokenStream::from(quote! {
   #[cfg(not(target_arch = "wasm32"))]

@@ -2,9 +2,9 @@
 use wasm_bindgen::prelude::*;
 //use turbocharger::prelude::*;
 //use turbocharger::{wasm_only, backend, server_only};
-use turbocharger::backend;
 #[cfg(target_arch = "wasm32")]
 use turbocharger::console_log;
+use turbocharger::{backend, server_only};
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
@@ -122,9 +122,7 @@ struct _tc_resp_get_remote_greeting {
  result: String,
 }
 
-//#[server_only]
-#[cfg(not(target_arch = "wasm32"))]
-#[allow(dead_code)]
+#[server_only]
 #[tokio::main]
 async fn main() {
  let event: &dyn ::turbocharger::RPC =

@@ -1,4 +1,4 @@
-pub use turbocharger_impl::backend;
+pub use turbocharger_impl::{backend, server_only};
 
 #[cfg(not(target_arch = "wasm32"))]
 pub use async_trait::async_trait;
