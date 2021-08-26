@@ -55,14 +55,17 @@ pub fn backend(
  let orig_fn_ident = orig_fn.sig.ident.clone();
  let orig_fn_string = orig_fn_ident.to_string();
  let orig_fn_params = orig_fn.sig.inputs.clone();
- let orig_fn_ret_ty = orig_fn.sig.output.clone();
+ let orig_fn_ret_ty = match &orig_fn.sig.output {
+  syn::ReturnType::Default => quote! { () },
+  syn::ReturnType::Type(_, ty) => quote! { #ty },
+ };
 
  let tuple_indexes = (0..orig_fn_params.len()).map(|i| syn::Index::from(i));
  let orig_fn_param_names = orig_fn_params.iter().map(|p| match p {
   syn::FnArg::Receiver(_) => abort_call_site!("I don't know what to do with `self` here."),
   syn::FnArg::Typed(pattype) => match *pattype.pat.clone() {
    syn::Pat::Ident(i) => i.ident,
-   _ => abort_call_site!("Eeps"),
+   _ => abort_call_site!("Parameter name is not Ident"),
   },
  });
  let orig_fn_param_tys = orig_fn_params.iter().map(|p| match p {
@@ -110,7 +113,7 @@ pub fn backend(
   #[wasm_bindgen(js_class = backend)]
   impl backend {
    #[wasm_bindgen]
-   pub async fn #orig_fn_ident(#orig_fn_params) -> String {
+   pub async fn #orig_fn_ident(#orig_fn_params) -> #orig_fn_ret_ty {
     {
      let t = ::turbocharger::_Transaction::new();
      let txid = t.txid;
@@ -153,7 +156,7 @@ pub fn backend(
   #[serde(crate = "::turbocharger::serde")]
   struct #resp {
    txid: i64,
-   result: String,
+   result: #orig_fn_ret_ty,
   }
 
 

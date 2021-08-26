@@ -37,6 +37,9 @@ pub async fn get_backend_test() -> String {
 }
 
 #[backend]
+pub async fn get_backend_test_no_retval() -> () {}
+
+#[backend]
 pub async fn get_backend_test_with_string(name: String) -> String {
  format!("Hello from get_backend_test_with_string, {}!", name).to_string()
 }
