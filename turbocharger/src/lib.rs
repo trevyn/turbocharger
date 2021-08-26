@@ -1,3 +1,5 @@
+pub use turbocharger_impl::backend;
+
 #[cfg(not(target_arch = "wasm32"))]
 pub use async_trait::async_trait;
 pub use bincode;

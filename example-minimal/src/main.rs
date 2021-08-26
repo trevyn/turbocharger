@@ -2,6 +2,7 @@
 use wasm_bindgen::prelude::*;
 //use turbocharger::prelude::*;
 //use turbocharger::{wasm_only, backend, server_only};
+use turbocharger::backend;
 #[cfg(target_arch = "wasm32")]
 use turbocharger::console_log;
 
@@ -40,6 +41,11 @@ impl wasm_only {
  pub async fn get_local_greeting2() -> String {
   "Hello from WASM two.".to_string()
  }
+}
+
+#[backend]
+pub async fn get_backend_test() -> String {
+ "Hello from get_backend_test.".to_string()
 }
 
 //#[backend]
