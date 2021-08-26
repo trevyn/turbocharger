@@ -26,6 +26,23 @@ pub fn server_only(
  })
 }
 
+#[proc_macro_attribute]
+#[proc_macro_error]
+pub fn wasm_only(
+ _args: proc_macro::TokenStream,
+ input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+ let orig_fn = parse_macro_input!(input as syn::ItemFn);
+ proc_macro::TokenStream::from(quote! {
+  #[cfg(target_arch = "wasm32")]
+  #[wasm_bindgen(js_class = wasm_only)]
+  impl wasm_only {
+   #[wasm_bindgen]
+   #orig_fn
+  }
+ })
+}
+
 /// Add this on a `pub async fn` to make it available (over the network) to the JS frontend.
 #[proc_macro_attribute]
 #[proc_macro_error]

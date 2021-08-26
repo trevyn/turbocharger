@@ -1,10 +1,8 @@
 #[cfg(target_arch = "wasm32")]
-use wasm_bindgen::prelude::*;
-//use turbocharger::prelude::*;
-//use turbocharger::{wasm_only, backend, server_only};
-#[cfg(target_arch = "wasm32")]
 use turbocharger::console_log;
-use turbocharger::{backend, server_only};
+use turbocharger::{backend, server_only, wasm_only};
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::prelude::*;
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
@@ -23,24 +21,14 @@ pub struct wasm_only;
 #[wasm_bindgen]
 pub struct backend;
 
-//#[wasm_only]
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen(js_class = wasm_only)]
-impl wasm_only {
- #[wasm_bindgen]
- pub async fn get_local_greeting1() -> String {
-  "Hello from WASM one.".to_string()
- }
+#[wasm_only]
+pub async fn get_local_greeting1() -> String {
+ "Hello from WASM one.".to_string()
 }
 
-//#[wasm_only]
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen(js_class = wasm_only)]
-impl wasm_only {
- #[wasm_bindgen]
- pub async fn get_local_greeting2() -> String {
-  "Hello from WASM two.".to_string()
- }
+#[wasm_only]
+pub async fn get_local_greeting2() -> String {
+ "Hello from WASM two.".to_string()
 }
 
 #[backend]
