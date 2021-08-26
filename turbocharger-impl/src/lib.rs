@@ -54,6 +54,29 @@ pub fn backend(
 
  let orig_fn_ident = orig_fn.sig.ident.clone();
  let orig_fn_string = orig_fn_ident.to_string();
+ let orig_fn_params = orig_fn.sig.inputs.clone();
+ let orig_fn_ret_ty = orig_fn.sig.output.clone();
+
+ let tuple_indexes = (0..orig_fn_params.len()).map(|i| syn::Index::from(i));
+ let orig_fn_param_names = orig_fn_params.iter().map(|p| match p {
+  syn::FnArg::Receiver(_) => abort_call_site!("I don't know what to do with `self` here."),
+  syn::FnArg::Typed(pattype) => match *pattype.pat.clone() {
+   syn::Pat::Ident(i) => i.ident,
+   _ => abort_call_site!("Eeps"),
+  },
+ });
+ let orig_fn_param_tys = orig_fn_params.iter().map(|p| match p {
+  syn::FnArg::Receiver(_) => abort_call_site!("I don't know what to do with `self` here."),
+  syn::FnArg::Typed(pattype) => &pattype.ty,
+ });
+ let orig_fn_param_tys_cloned = orig_fn_param_tys.clone();
+
+ let orig_fn_params_maybe_comma = if orig_fn_params.len() == 0 {
+  quote! {}
+ } else {
+  quote! { , }
+ };
+
  let mod_name =
   Ident::new(&format!("_TURBOCHARGER_{}", orig_fn_string), proc_macro2::Span::call_site());
  let dispatch =
@@ -76,7 +99,7 @@ pub fn backend(
     async fn execute(&self) -> Vec<u8> {
      let response = super::#resp {
       txid: self.txid,
-      result: super::#orig_fn_ident().await,
+      result: super::#orig_fn_ident(#( self.params. #tuple_indexes .clone() ),*).await,
      };
      ::turbocharger::bincode::serialize(&response).unwrap()
     }
@@ -87,7 +110,7 @@ pub fn backend(
   #[wasm_bindgen(js_class = backend)]
   impl backend {
    #[wasm_bindgen]
-   pub async fn #orig_fn_ident() -> String {
+   pub async fn #orig_fn_ident(#orig_fn_params) -> String {
     {
      let t = ::turbocharger::_Transaction::new();
      let txid = t.txid;
@@ -95,7 +118,7 @@ pub fn backend(
       typetag_const_one: 1,
       dispatch_name: #orig_fn_string,
       txid: t.txid,
-      params: ("foo".to_owned(),),
+      params: (#(#orig_fn_param_names),* #orig_fn_params_maybe_comma),
      })
      .unwrap();
      let response = t.run(req).await;
@@ -114,7 +137,7 @@ pub fn backend(
    typetag_const_one: i64,
    dispatch_name: &'static str,
    txid: i64,
-   params: (String,),
+   params: (#(#orig_fn_param_tys),* #orig_fn_params_maybe_comma),
   }
 
   #[allow(non_camel_case_types)]
@@ -122,7 +145,7 @@ pub fn backend(
   #[serde(crate = "::turbocharger::serde")]
   struct #dispatch {
    txid: i64,
-   params: (String,),
+   params: (#(#orig_fn_param_tys_cloned),* #orig_fn_params_maybe_comma),
   }
 
   #[allow(non_camel_case_types)]

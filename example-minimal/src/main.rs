@@ -36,12 +36,17 @@ pub async fn get_backend_test() -> String {
  "Hello from get_backend_test.".to_string()
 }
 
+#[backend]
+pub async fn get_backend_test_with_string(name: String) -> String {
+ format!("Hello from get_backend_test_with_string, {}!", name).to_string()
+}
+
 //#[backend]
 #[cfg(not(target_arch = "wasm32"))]
-pub async fn get_remote_greeting() -> String {
+pub async fn get_remote_greeting(name: String) -> String {
  eprintln!("get_remote_greeting called");
  tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
- "Hello from backend.".to_string()
+ format!("Hello from backend, {}!", name).to_string()
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -53,7 +58,7 @@ mod _tc_get_remote_greeting {
   async fn execute(&self) -> Vec<u8> {
    let response = super::_tc_resp_get_remote_greeting {
     txid: self.txid,
-    result: super::get_remote_greeting().await,
+    result: super::get_remote_greeting(self.params.0.clone()).await,
    };
    ::turbocharger::bincode::serialize(&response).unwrap()
   }
@@ -64,7 +69,7 @@ mod _tc_get_remote_greeting {
 #[wasm_bindgen(js_class = backend)]
 impl backend {
  #[wasm_bindgen]
- pub async fn get_remote_greeting() -> String {
+ pub async fn get_remote_greeting(name: String) -> String {
   {
    let t = ::turbocharger::_Transaction::new();
    let txid = t.txid;
@@ -72,7 +77,7 @@ impl backend {
     typetag_const_one: 1,
     dispatch_name: "get_remote_greeting",
     txid: t.txid,
-    params: ("foo".to_owned(),),
+    params: (name,),
    })
    .unwrap();
    let response = t.run(req).await;

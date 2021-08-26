@@ -13,7 +13,8 @@ async function main() {
  append(await wasm.get_local_greeting1());
  append(await wasm.get_local_greeting2());
  append(await backend.get_backend_test());
- append(await backend.get_remote_greeting());
+ append(await backend.get_remote_greeting("bobert"));
+ append(await backend.get_backend_test_with_string("flaubert"));
  append(await backend.get_remote_greeting());
  append(await backend.get_remote_greeting());
  append(await backend.get_remote_greeting());
