@@ -31,7 +31,7 @@ Works with any types that are [supported by](https://rustwasm.github.io/docs/was
 
 ## How It Works
 
-A proc macro auto-generates a frontend `wasm-bindgen` module, which serializes the JS function call paramters with `bincode`. These requests are sent over a shared WebSocket connection to a provided `warp` endpoint on the backend server, which calls your Rust function and serializes the response. This is sent back over the WebSocket and resolves the Promise returned by the original function call.
+A proc macro auto-generates a frontend `wasm-bindgen` module, which serializes the JS function call parameters with `bincode`. These requests are sent over a shared WebSocket connection to a provided `warp` endpoint on the backend server, which calls your Rust function and serializes the response. This is sent back over the WebSocket and resolves the Promise returned by the original function call.
 
 Multiple async requests can be simultaneously in-flight over a single multiplexed connection; it all just works.
 
@@ -46,7 +46,8 @@ use serde::{Serialize, Deserialize};
 use turbocharger::{Turbocharger, backend, server_only};
 use turbosql::{Turbosql, select};
 
-#[derive(Turbocharger, Turbosql, Serialize, Deserialize, Default)]
+#[backend]
+#[derive(Turbosql, Serialize, Deserialize, Default)]
 struct Person {
  rowid: Option<i64>,
  name: Option<String>
@@ -90,11 +91,11 @@ Your `main.rs` file is the entry point for both the server `bin` target and a `w
 - An internal function for the server `bin` target providing the RPC glue.
 - A `#[wasm_bindgen]` function for the frontend WASM module that makes the RPC call and delivers the response.
 
-All functions in `main.rs` must be annotated with one of `#[backend]`, `#[server_only]`, or `#[wasm_only]`.
+All functions and structs in `main.rs` should be annotated with one of `#[backend]`, `#[server_only]`, or `#[wasm_only]`.
 
 ## Server
 
-Currently, the server side is batteries-included with `warp`, but this could be decoupled in the future.
+Currently, the server side is batteries-included with `warp`, but this could be decoupled in the future. If this would be useful for you, please open a GitHub issue describing a use case.
 
 ## WASM functions
 
