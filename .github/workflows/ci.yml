@@ -47,7 +47,10 @@ jobs:
 
       - run: npm install
         working-directory: 'example-minimal/frontend'
-        
+
+      - run: npm audit
+        working-directory: 'example-minimal/frontend'
+
       - run: cargo build --lib --target=wasm32-unknown-unknown --release
         working-directory: 'example-minimal'
 
@@ -60,7 +63,10 @@ jobs:
 
       - run: npm install
         working-directory: 'example-turbosql/frontend'
-        
+
+      - run: npm audit
+        working-directory: 'example-turbosql/frontend'
+
       - run: cargo build --lib --target=wasm32-unknown-unknown --release
         working-directory: 'example-turbosql'
 
