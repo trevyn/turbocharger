@@ -1,0 +1,13 @@
+{
+ "scripts": {
+  "start": "snowpack dev",
+  "build": "snowpack build",
+  "reinstall-deps": "rm -rf node_modules && rm -rf package-lock.json && npm install",
+  "outdated": "npm outdated"
+ },
+ "devDependencies": {
+  "snowpack": "^3",
+  "@emily-curry/snowpack-plugin-wasm-pack": "^1"
+ },
+ "dependencies": {}
+}

@@ -1,8 +1,8 @@
 [package]
 authors = ["trevyn <trevyn-git@protonmail.com>"]
-description = "Turbocharger minimal example."
+description = "Turbocharger Turbosql example."
 edition = "2018"
-name = "example-minimal"
+name = "example-turbosql"
 publish = false
 version = "0.1.0"
 
@@ -12,6 +12,7 @@ path = "src/main.rs"
 
 [dependencies]
 # dependencies for both server and wasm
+serde = {version = "1", features = ["derive"]}
 turbocharger = {path = "../turbocharger", version = "0.1"}
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
@@ -22,4 +23,5 @@ wasm-bindgen-futures = "0.4"
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 # dependencies for server only
 tokio = {version = "1", features = ["full"]}
+turbosql = {git = "https://github.com/trevyn/turbosql", branch = "main"}
 warp = "0.3"

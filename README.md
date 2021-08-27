@@ -37,7 +37,7 @@ Multiple async requests can be simultaneously in-flight over a single multiplexe
 
 ## Complete Example: A full SQLite-powered backend with frontend bindings
 
-Full backend and frontend project in `example-turbosql/`; run with `cargo run example-turbosql`
+Full backend and frontend project in `example-turbosql/`; run with `cargo run --bin example-turbosql`
 
 ### `main.rs`
 
