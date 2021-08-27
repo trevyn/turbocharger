@@ -42,11 +42,12 @@ jobs:
           rust-version: ${{ matrix.rust }}
           targets: wasm32-unknown-unknown
 
+      - run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+
       - run: npm install
         working-directory: 'example-minimal/frontend'
         
-      - run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-
       - run: cargo build --lib --target=wasm32-unknown-unknown --release
         working-directory: 'example-minimal'
 
@@ -55,3 +56,16 @@ jobs:
 
       - run: cargo build
         working-directory: 'example-minimal'
+
+
+      - run: npm install
+        working-directory: 'example-turbosql/frontend'
+        
+      - run: cargo build --lib --target=wasm32-unknown-unknown --release
+        working-directory: 'example-turbosql'
+
+      - run: npm run build
+        working-directory: 'example-turbosql/frontend'
+
+      - run: cargo build
+        working-directory: 'example-turbosql'
