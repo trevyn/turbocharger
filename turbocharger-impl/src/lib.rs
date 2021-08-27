@@ -12,6 +12,7 @@ use syn::{
  Token, Type,
 };
 
+/// Apply this to a function to make it available on the server only.
 #[proc_macro_attribute]
 #[proc_macro_error]
 pub fn server_only(
@@ -19,13 +20,33 @@ pub fn server_only(
  input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
  let orig_fn = parse_macro_input!(input as syn::ItemFn);
+
+ let maybe_inject_once = if orig_fn.sig.ident.to_string() == "main" {
+  quote! {
+   #[cfg(target_arch = "wasm32")]
+   #[allow(non_camel_case_types)]
+   #[wasm_bindgen]
+   pub struct wasm_only;
+
+   #[cfg(target_arch = "wasm32")]
+   #[allow(non_camel_case_types)]
+   #[wasm_bindgen]
+   pub struct backend;
+  }
+ } else {
+  quote! {}
+ };
+
  proc_macro::TokenStream::from(quote! {
+  #maybe_inject_once
+
   #[cfg(not(target_arch = "wasm32"))]
   #[allow(dead_code)]
   #orig_fn
  })
 }
 
+/// Apply this to a `pub` `fn` to make it available to the WASM module only. Apples `#[wasm_bindgen]` underneath.
 #[proc_macro_attribute]
 #[proc_macro_error]
 pub fn wasm_only(
@@ -43,7 +64,7 @@ pub fn wasm_only(
  })
 }
 
-/// Add this on a `pub async fn` to make it available (over the network) to the JS frontend.
+/// Apply this to an `async fn` to make it available (over the network) to the JS frontend.
 #[proc_macro_attribute]
 #[proc_macro_error]
 pub fn backend(

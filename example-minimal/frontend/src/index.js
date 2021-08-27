@@ -5,22 +5,21 @@ import turbocharger_init, {
 
 function append(t) {
  document.body.appendChild(document.createTextNode(t));
+ document.body.appendChild(document.createElement("br"));
 }
 
-async function main() {
+(async () => {
  append("Hello from JS.");
  await turbocharger_init("turbocharger_generated/index_bg.wasm");
  append(await wasm.get_local_greeting1());
  append(await wasm.get_local_greeting2());
- await backend.get_backend_test_no_retval();
  append(await backend.get_backend_test());
- append(await backend.get_remote_greeting("bobert"));
- append(await backend.get_backend_test_with_string("flaubert"));
- append(await backend.get_remote_greeting("bobert"));
- for (let x = 0; x < 100; x++)
-  backend.get_remote_greeting("bobert").then((r) => {
+ await backend.get_backend_test_no_retval();
+ append(await backend.get_backend_test_with_delay());
+ append(await backend.get_backend_test_with_string("human"));
+ append(await backend.get_backend_test_with_i64_i32(1n, 2));
+ for (let x = 0; x < 50; x++)
+  backend.get_backend_test_with_delay().then((r) => {
    append(r);
   });
-}
-
-main();
+})();
