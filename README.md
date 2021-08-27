@@ -55,7 +55,7 @@ struct Person {
 
 #[backend]
 async fn insert_person(p: Person) -> anyhow::Result<i64> {
- p.insert() // returns Result<rowid>
+ p.insert() // returns Ok(rowid)
 }
 
 #[backend]
