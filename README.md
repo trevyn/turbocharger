@@ -43,7 +43,7 @@ Full backend and frontend project in `example-turbosql/`; run with `cargo run ex
 
 ```rust
 use serde::{Serialize, Deserialize};
-use turbocharger::{Turbocharger, backend, server_only};
+use turbocharger::{backend, server_only};
 use turbosql::{Turbosql, select};
 
 #[backend]
@@ -55,7 +55,7 @@ struct Person {
 
 #[backend]
 async fn insert_person(p: Person) -> anyhow::Result<i64> {
- p.insert()
+ p.insert() // returns Result<rowid>
 }
 
 #[backend]
