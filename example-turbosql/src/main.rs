@@ -24,10 +24,10 @@ pub async fn insert_person(p: Person) -> i32 {
  dbg!(p.insert().unwrap()) as i32 // returns rowid
 }
 
-// #[backend]
-// async fn get_person(rowid: i64) -> anyhow::Result<Person> {
-//  turbosql::select!(Person "WHERE rowid = ?", rowid)
-// }
+#[backend]
+async fn get_person(rowid: i64) -> Person {
+ turbosql::select!(Person "WHERE rowid = ?", rowid).unwrap()
+}
 
 #[server_only]
 #[tokio::main]

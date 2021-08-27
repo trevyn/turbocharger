@@ -10,5 +10,5 @@ import turbocharger_init, {
  p.name = "Bob";
  console.log(p);
  let rowid = await backend.insert_person(p);
- console.log(await backend.get_person(rowid));
+ console.log(await backend.get_person(BigInt(rowid)));
 })();
