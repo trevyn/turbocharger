@@ -89,7 +89,7 @@ Your `main.rs` file is the entry point for both the server `bin` target and a `w
 
 - Your function, unchanged, for the server `bin` target; you can call it directly from other server code if you wish.
 - An internal function for the server `bin` target providing the RPC glue.
-- A `#[wasm_bindgen]` function for the frontend WASM module that makes the RPC call and delivers the response.
+- A `#[wasm_bindgen]` function for the frontend `lib` target that makes the RPC call and delivers the response.
 
 All functions and structs in `main.rs` should be annotated with one of `#[backend]`, `#[server_only]`, or `#[wasm_only]`.
 
