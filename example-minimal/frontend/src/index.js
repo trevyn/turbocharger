@@ -1,7 +1,5 @@
-import turbocharger_init, {
- wasm_only as wasm,
- backend,
-} from "./turbocharger_generated";
+import turbocharger_init, * as backend from "./turbocharger_generated";
+import { wasm_only } from "./turbocharger_generated";
 
 function append(t) {
  document.body.appendChild(document.createTextNode(t));
@@ -11,8 +9,8 @@ function append(t) {
 (async () => {
  append("Hello from JS.");
  await turbocharger_init("turbocharger_generated/index_bg.wasm");
- append(await wasm.get_local_greeting1());
- append(await wasm.get_local_greeting2());
+ append(await wasm_only.get_local_greeting1());
+ append(await wasm_only.get_local_greeting2());
  append(await backend.get_backend_test());
  await backend.get_backend_test_no_retval();
  append(await backend.get_backend_test_with_delay());

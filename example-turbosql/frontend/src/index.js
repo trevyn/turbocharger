@@ -1,14 +1,11 @@
-import turbocharger_init, {
- backend,
- Person,
- wasm_only,
-} from "./turbocharger_generated";
+import turbocharger_init, * as backend from "./turbocharger_generated";
 
 (async () => {
  await turbocharger_init();
- let p = wasm_only.new_person();
+ let p = new backend.Person();
  p.name = "Bob";
- console.log(p);
  let rowid = await backend.insert_person(p);
- console.log(await backend.get_person(BigInt(rowid)));
+
+ let row = await backend.get_person(BigInt(rowid));
+ console.log(row.rowid, row.name);
 })();

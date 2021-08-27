@@ -128,24 +128,21 @@ pub fn backend(
   }
 
   #[cfg(target_arch = "wasm32")]
-  #[wasm_bindgen(js_class = backend)]
-  impl backend {
-   #[wasm_bindgen]
-   pub async fn #orig_fn_ident(#orig_fn_params) -> #orig_fn_ret_ty {
-    {
-     let tx = ::turbocharger::_Transaction::new();
-     let req = ::turbocharger::bincode::serialize(&#req {
-      typetag_const_one: 1,
-      dispatch_name: #orig_fn_string,
-      txid: tx.txid,
-      params: (#(#orig_fn_param_names),* #orig_fn_params_maybe_comma),
-     })
-     .unwrap();
-     let response = tx.run(req).await;
-     let #resp { result, .. } =
-      ::turbocharger::bincode::deserialize(&response).unwrap();
-     result
-    }
+  #[wasm_bindgen]
+  pub async fn #orig_fn_ident(#orig_fn_params) -> #orig_fn_ret_ty {
+   {
+    let tx = ::turbocharger::_Transaction::new();
+    let req = ::turbocharger::bincode::serialize(&#req {
+     typetag_const_one: 1,
+     dispatch_name: #orig_fn_string,
+     txid: tx.txid,
+     params: (#(#orig_fn_param_names),* #orig_fn_params_maybe_comma),
+    })
+    .unwrap();
+    let response = tx.run(req).await;
+    let #resp { result, .. } =
+     ::turbocharger::bincode::deserialize(&response).unwrap();
+    result
    }
   }
 

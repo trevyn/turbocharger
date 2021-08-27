@@ -6,7 +6,7 @@ use turbocharger::{backend, server_only, wasm_only};
 #[cfg(not(target_arch = "wasm32"))]
 use turbosql::{select, Turbosql};
 
-#[wasm_bindgen(getter_with_clone)]
+#[wasm_bindgen(getter_with_clone, inspectable)]
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[cfg_attr(not(target_arch = "wasm32"), derive(Turbosql))]
 pub struct Person {
@@ -14,9 +14,12 @@ pub struct Person {
  pub name: Option<String>,
 }
 
-#[wasm_only]
-pub fn new_person() -> Person {
- Person::default()
+#[wasm_bindgen]
+impl Person {
+ #[wasm_bindgen(constructor)]
+ pub fn new() -> Person {
+  Person::default()
+ }
 }
 
 #[backend]
