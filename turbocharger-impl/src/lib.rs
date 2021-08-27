@@ -80,20 +80,17 @@ pub fn backend(
   quote! { , }
  };
 
- let mod_name =
-  Ident::new(&format!("_TURBOCHARGER_{}", orig_fn_string), proc_macro2::Span::call_site());
- let dispatch =
-  Ident::new(&format!("_TURBOCHARGER_DISPATCH_{}", orig_fn_string), proc_macro2::Span::call_site());
- let req =
-  Ident::new(&format!("_TURBOCHARGER_REQ_{}", orig_fn_string), proc_macro2::Span::call_site());
- let resp =
-  Ident::new(&format!("_TURBOCHARGER_RESP_{}", orig_fn_string), proc_macro2::Span::call_site());
+ let mod_name = format_ident!("_TURBOCHARGER_{}", orig_fn_ident);
+ let dispatch = format_ident!("_TURBOCHARGER_DISPATCH_{}", orig_fn_ident);
+ let req = format_ident!("_TURBOCHARGER_REQ_{}", orig_fn_ident);
+ let resp = format_ident!("_TURBOCHARGER_RESP_{}", orig_fn_ident);
 
  proc_macro::TokenStream::from(quote! {
   #[cfg(not(target_arch = "wasm32"))]
   #orig_fn
 
   #[cfg(not(target_arch = "wasm32"))]
+  #[allow(non_snake_case)]
   mod #mod_name {
    use ::turbocharger::typetag;
    #[::turbocharger::typetag::serde(name = #orig_fn_string)]
@@ -115,19 +112,17 @@ pub fn backend(
    #[wasm_bindgen]
    pub async fn #orig_fn_ident(#orig_fn_params) -> #orig_fn_ret_ty {
     {
-     let t = ::turbocharger::_Transaction::new();
-     let txid = t.txid;
+     let tx = ::turbocharger::_Transaction::new();
      let req = ::turbocharger::bincode::serialize(&#req {
       typetag_const_one: 1,
       dispatch_name: #orig_fn_string,
-      txid: t.txid,
+      txid: tx.txid,
       params: (#(#orig_fn_param_names),* #orig_fn_params_maybe_comma),
      })
      .unwrap();
-     let response = t.run(req).await;
+     let response = tx.run(req).await;
      let #resp { result, .. } =
       ::turbocharger::bincode::deserialize(&response).unwrap();
-     console_log!("tx {}: {:?}", txid, result);
      result
     }
    }
@@ -158,7 +153,6 @@ pub fn backend(
    txid: i64,
    result: #orig_fn_ret_ty,
   }
-
 
  })
 }
