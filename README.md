@@ -37,29 +37,27 @@ Multiple async requests can be simultaneously in-flight over a single multiplexe
 
 ## Complete Example: A full SQLite-powered backend with frontend bindings
 
-Full backend and frontend project in `example-turbosql/`; run with `cargo run --bin example-turbosql`
+This is the complete code that's necessary, but the full project setup and JS build pipeline are in `example-turbosql/`; run with `cargo run --bin example-turbosql`
 
 ### `main.rs`
 
 ```rust
-use serde::{Serialize, Deserialize};
-use turbocharger::{backend, server_only};
-use turbosql::{Turbosql, select};
+use turbocharger::prelude::*;
 
 #[backend]
-#[derive(Turbosql, Serialize, Deserialize, Default)]
+#[derive(turbosql::Turbosql, Default)]
 struct Person {
  rowid: Option<i64>,
  name: Option<String>
 }
 
 #[backend]
-async fn insert_person(p: Person) -> anyhow::Result<i64> {
- p.insert() // returns Ok(rowid)
+async fn insert_person(p: Person) -> Result<i64, turbosql::Error> {
+ p.insert() // returns rowid
 }
 
 #[backend]
-async fn get_person(rowid: i64) -> anyhow::Result<Person> {
+async fn get_person(rowid: i64) -> Result<Person, turbosql::Error> {
  turbosql::select!(Person "WHERE rowid = ?", rowid)
 }
 
@@ -89,23 +87,25 @@ import turbocharger_init, * as backend from "./turbocharger_generated";
 Your `main.rs` file is the entry point for both the server `bin` target and a `wasm-bindgen` `lib` target. The `#[backend]` macro outputs three functions:
 
 - Your function, unchanged, for the server `bin` target; you can call it directly from other server code if you wish.
-- An internal function for the server `bin` target providing the RPC glue.
+- An internal function for the server `bin` target providing the RPC dispatch glue.
 - A `#[wasm_bindgen]` function for the frontend `lib` target that makes the RPC call and delivers the response.
 
-All functions and structs in `main.rs` should be annotated with one of `#[backend]`, `#[server_only]`, or `#[wasm_only]`.
+Because the project is compiled to both `wasm32-unknown-unknown` and the host triple, all functions and structs in `main.rs` should be annotated with one of `#[backend]`, `#[server_only]`, or `#[wasm_only]`.
+
+## Error Handling
+
+`#[backend]` functions that need to return an error can return a `Result<T, E>` where `T` is a `wasm-bindgen`-compatible type and `E` is a type that implements `std::error::Error`, including `Box<dyn std::error::Error>>` and `anyhow::Error`. Errors crossing the network boundary are converted to a `String` representation on the server via their `to_string()` method and delivered as a Promise rejection on the JS side.
 
 ## Server
 
-Currently, the server side is batteries-included with `warp`, but this could be decoupled in the future. If this would be useful for you, please open a GitHub issue describing a use case.
+Currently, the server side is batteries-included with `warp`, but this could be decoupled in the future. If this decoupling would be useful to you, please open a GitHub issue describing a use case.
 
-## WASM functions
+## WASM-only functions
 
-You can also easily add standard `#[wasm-bindgen]` style Rust functions to the WASM module, accessible from the frontend only:
+You can also easily add standard `#[wasm-bindgen]`-style Rust functions to the WASM module, accessible from the frontend only:
 
 ```rust
-use turbocharger::wasm_only;
-
-#[wasm_only]
+#[turbocharger::wasm_only]
 async fn get_wasm_greeting() -> String {
  "Hello from WASM".to_string()
 }
@@ -114,9 +114,8 @@ async fn get_wasm_greeting() -> String {
 ## To Do / Future Directions
 
 - Better WebSocket status management / reconnect
-- Error handling with `Result::Err` triggering a Promise rejection
 - Streaming responses with `futures::stream`
-- `Vec<T>` types, see [wasm-bindgen#111](https://github.com/rustwasm/wasm-bindgen/issues/111)
-- Anything [`tarpc`](https://github.com/google/tarpc) does, particularly around timeouts, cancellation, etc.
+- Verify `Vec<T>` types, see [wasm-bindgen#111](https://github.com/rustwasm/wasm-bindgen/issues/111)
+- Many things [`tarpc`](https://github.com/google/tarpc) does, particularly around timeouts and cancellation.
 
 ### License: MIT OR Apache-2.0 OR CC0-1.0 (public domain)
