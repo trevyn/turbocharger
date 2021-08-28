@@ -74,12 +74,13 @@ async fn main() {
 ### `index.js`
 
 ```js
-import turbocharger_init, { backend } from "./turbocharger_generated";
+import turbocharger_init, * as backend from "./turbocharger_generated";
 
 (async () => {
  await turbocharger_init();
- let rowid = await backend.insert_person({ name: "Bob" });
- console.log(await backend.get_person(rowid));
+ let person = Object.assign(new backend.Person(), { name: "Bob" });
+ let rowid = await backend.insert_person(person);
+ console.log((await backend.get_person(rowid)).toJSON());
 })();
 ```
 

@@ -2,10 +2,7 @@ import turbocharger_init, * as backend from "./turbocharger_generated";
 
 (async () => {
  await turbocharger_init();
- let p = new backend.Person();
- p.name = "Bob";
- let rowid = await backend.insert_person(p);
-
- let row = await backend.get_person(rowid);
- console.log(row.rowid, row.name);
+ let person = Object.assign(new backend.Person(), { name: "Bob" });
+ let rowid = await backend.insert_person(person);
+ console.log((await backend.get_person(rowid)).toJSON());
 })();

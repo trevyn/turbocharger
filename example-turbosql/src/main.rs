@@ -29,7 +29,7 @@ pub async fn insert_person(p: Person) -> i64 {
 
 #[backend]
 async fn get_person(rowid: i64) -> Person {
- turbosql::select!(Person "WHERE rowid = ?", rowid).unwrap()
+ select!(Person "WHERE rowid = ?", rowid).unwrap()
 }
 
 #[server_only]
