@@ -9,7 +9,7 @@ use proc_macro_error::{abort, abort_call_site, proc_macro_error};
 use quote::{format_ident, quote, ToTokens};
 use syn::{
  parse_macro_input, Data, DeriveInput, Expr, Fields, FieldsNamed, Ident, LitStr, Meta, NestedMeta,
- Token, Type,
+ PathSegment, Token, Type,
 };
 
 /// Apply this to a function to make it available on the server only.
@@ -76,9 +76,77 @@ pub fn backend(
  let orig_fn_ident = orig_fn.sig.ident.clone();
  let orig_fn_string = orig_fn_ident.to_string();
  let orig_fn_params = orig_fn.sig.inputs.clone();
- let orig_fn_ret_ty = match &orig_fn.sig.output {
-  syn::ReturnType::Default => quote! { () },
-  syn::ReturnType::Type(_, ty) => quote! { #ty },
+ let orig_fn_sig_output = orig_fn.sig.output.clone();
+ let output = orig_fn.sig.output.clone();
+ let ret_ty = match output {
+  syn::ReturnType::Default => None,
+  syn::ReturnType::Type(_, path) => Some(path.clone()),
+ };
+ let ret_ty = match ret_ty.clone() {
+  Some(path) => Some(*path),
+  None => None,
+ };
+ let typepath = match ret_ty {
+  Some(syn::Type::Path(typepath)) => Some(typepath),
+  _ => None,
+ };
+ let orig_fn_ret_ty = match orig_fn_sig_output {
+  syn::ReturnType::Default => None,
+  syn::ReturnType::Type(_, path) => Some(*path),
+ };
+
+ // If return type is `Result<T, E>`, extract `T` so that `E` can be exchanged for `String` / `JsValue` for serialization and JS throws
+
+ let path = match typepath {
+  Some(syn::TypePath { path, .. }) => Some(path),
+  _ => None,
+ };
+ let pair = match path {
+  Some(syn::Path { mut segments, .. }) => segments.pop(),
+  _ => None,
+ };
+ let pathsegment = match pair {
+  Some(pair) => Some(pair.into_value()),
+  _ => None,
+ };
+ let (is_result, arguments) = match pathsegment {
+  Some(syn::PathSegment { ident, arguments }) => (ident == "Result", Some(arguments)),
+  _ => (false, None),
+ };
+
+ let anglebracketedgenericarguments = match arguments {
+  Some(syn::PathArguments::AngleBracketed(anglebracketedgenericarguments)) => {
+   Some(anglebracketedgenericarguments)
+  }
+  _ => None,
+ };
+
+ let args = match anglebracketedgenericarguments {
+  Some(syn::AngleBracketedGenericArguments { args, .. }) => Some(args),
+  _ => None,
+ };
+
+ let result_inner_ty = match args {
+  Some(args) => Some(args.into_iter().next()),
+  _ => None,
+ };
+
+ let js_ret_ty = if is_result && result_inner_ty.is_some() {
+  quote! { Result<#result_inner_ty, JsValue> }
+ } else {
+  quote! { #orig_fn_ret_ty }
+ };
+
+ let serialize_ret_ty = if is_result && result_inner_ty.is_some() {
+  quote! { Result<#result_inner_ty, String> }
+ } else {
+  quote! { #orig_fn_ret_ty }
+ };
+
+ let maybe_map_err = if is_result && result_inner_ty.is_some() {
+  quote! { .map_err(|e| e.to_string().into()) }
+ } else {
+  quote! {}
  };
 
  let tuple_indexes = (0..orig_fn_params.len()).map(|i| syn::Index::from(i));
@@ -89,6 +157,7 @@ pub fn backend(
    _ => abort_call_site!("Parameter name is not Ident"),
   },
  });
+ let orig_fn_param_names_cloned = orig_fn_param_names.clone();
  let orig_fn_param_tys = orig_fn_params.iter().map(|p| match p {
   syn::FnArg::Receiver(_) => abort_call_site!("I don't know what to do with `self` here."),
   syn::FnArg::Typed(pattype) => &pattype.ty,
@@ -105,6 +174,13 @@ pub fn backend(
  let dispatch = format_ident!("_TURBOCHARGER_DISPATCH_{}", orig_fn_ident);
  let req = format_ident!("_TURBOCHARGER_REQ_{}", orig_fn_ident);
  let resp = format_ident!("_TURBOCHARGER_RESP_{}", orig_fn_ident);
+ let impl_fn_ident = format_ident!("_TURBOCHARGER_IMPL_{}", orig_fn_ident);
+
+ // let orig_fn_ret_ty = if orig_fn_ret_ty.is_some() {
+ //  quote! { #orig_fn_ret_ty }
+ // } else {
+ //  quote! { () }
+ // };
 
  proc_macro::TokenStream::from(quote! {
   #[cfg(not(target_arch = "wasm32"))]
@@ -120,7 +196,7 @@ pub fn backend(
     async fn execute(&self) -> Vec<u8> {
      let response = super::#resp {
       txid: self.txid,
-      result: super::#orig_fn_ident(#( self.params. #tuple_indexes .clone() ),*).await,
+      result: super::#orig_fn_ident(#( self.params. #tuple_indexes .clone() ),*).await #maybe_map_err,
      };
      ::turbocharger::bincode::serialize(&response).unwrap()
     }
@@ -129,14 +205,19 @@ pub fn backend(
 
   #[cfg(target_arch = "wasm32")]
   #[wasm_bindgen]
-  pub async fn #orig_fn_ident(#orig_fn_params) -> #orig_fn_ret_ty {
+  pub async fn #orig_fn_ident(#orig_fn_params) -> #js_ret_ty {
+   #impl_fn_ident(#( #orig_fn_param_names ),*) .await #maybe_map_err
+  }
+
+  #[cfg(target_arch = "wasm32")]
+  async fn #impl_fn_ident(#orig_fn_params) -> #serialize_ret_ty {
    {
     let tx = ::turbocharger::_Transaction::new();
     let req = ::turbocharger::bincode::serialize(&#req {
      typetag_const_one: 1,
      dispatch_name: #orig_fn_string,
      txid: tx.txid,
-     params: (#(#orig_fn_param_names),* #orig_fn_params_maybe_comma),
+     params: (#( #orig_fn_param_names_cloned ),* #orig_fn_params_maybe_comma),
     })
     .unwrap();
     let response = tx.run(req).await;
@@ -153,7 +234,7 @@ pub fn backend(
    typetag_const_one: i64,
    dispatch_name: &'static str,
    txid: i64,
-   params: (#(#orig_fn_param_tys),* #orig_fn_params_maybe_comma),
+   params: (#( #orig_fn_param_tys ),* #orig_fn_params_maybe_comma),
   }
 
   #[allow(non_camel_case_types)]
@@ -161,7 +242,7 @@ pub fn backend(
   #[serde(crate = "::turbocharger::serde")]
   struct #dispatch {
    txid: i64,
-   params: (#(#orig_fn_param_tys_cloned),* #orig_fn_params_maybe_comma),
+   params: (#( #orig_fn_param_tys_cloned ),* #orig_fn_params_maybe_comma),
   }
 
   #[allow(non_camel_case_types)]
@@ -169,7 +250,7 @@ pub fn backend(
   #[serde(crate = "::turbocharger::serde")]
   struct #resp {
    txid: i64,
-   result: #orig_fn_ret_ty,
+   result: #serialize_ret_ty,
   }
 
  })

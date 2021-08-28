@@ -2,7 +2,7 @@
 use wasm_bindgen::prelude::*;
 
 use serde::{Deserialize, Serialize};
-use turbocharger::{backend, server_only, wasm_only};
+use turbocharger::{backend, server_only};
 #[cfg(not(target_arch = "wasm32"))]
 use turbosql::{select, Turbosql};
 
@@ -23,13 +23,14 @@ impl Person {
 }
 
 #[backend]
-pub async fn insert_person(p: Person) -> i64 {
- p.insert().unwrap() // returns rowid
+pub async fn insert_person(p: Person) -> Result<i64, turbosql::Error> {
+ p.insert() // returns rowid
 }
 
 #[backend]
-async fn get_person(rowid: i64) -> Person {
- select!(Person "WHERE rowid = ?", rowid).unwrap()
+// async fn get_person(rowid: i64) -> Result<Person, Box<dyn std::error::Error>> {
+async fn get_person(rowid: i64) -> Result<Person, turbosql::Error> {
+ select!(Person "WHERE rowid = ?", rowid)
 }
 
 #[server_only]
