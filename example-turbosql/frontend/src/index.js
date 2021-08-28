@@ -6,6 +6,6 @@ import turbocharger_init, * as backend from "./turbocharger_generated";
  p.name = "Bob";
  let rowid = await backend.insert_person(p);
 
- let row = await backend.get_person(BigInt(rowid));
+ let row = await backend.get_person(rowid);
  console.log(row.rowid, row.name);
 })();

@@ -23,8 +23,8 @@ impl Person {
 }
 
 #[backend]
-pub async fn insert_person(p: Person) -> i32 {
- dbg!(p.insert().unwrap()) as i32 // returns rowid
+pub async fn insert_person(p: Person) -> i64 {
+ p.insert().unwrap() // returns rowid
 }
 
 #[backend]
