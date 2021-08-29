@@ -3,14 +3,10 @@
 //! Please refer to the `turbocharger` crate for how to set this up.
 
 #![forbid(unsafe_code)]
-#![allow(unused_imports)]
 
-use proc_macro_error::{abort, abort_call_site, proc_macro_error};
-use quote::{format_ident, quote, ToTokens};
-use syn::{
- parse_macro_input, Data, DeriveInput, Expr, Fields, FieldsNamed, Ident, LitStr, Meta, NestedMeta,
- PathSegment, Token, Type,
-};
+mod extract_result;
+use proc_macro_error::{abort_call_site, proc_macro_error};
+use quote::{format_ident, quote};
 
 /// Apply this to a function to make it available on the server only.
 #[proc_macro_attribute]
@@ -19,7 +15,7 @@ pub fn server_only(
  _args: proc_macro::TokenStream,
  input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
- let orig_fn = parse_macro_input!(input as syn::ItemFn);
+ let orig_fn = syn::parse_macro_input!(input as syn::ItemFn);
 
  let maybe_inject_once = if orig_fn.sig.ident == "main" {
   quote! {
@@ -27,11 +23,6 @@ pub fn server_only(
    #[allow(non_camel_case_types)]
    #[wasm_bindgen]
    pub struct wasm_only;
-
-   #[cfg(target_arch = "wasm32")]
-   #[allow(non_camel_case_types)]
-   #[wasm_bindgen]
-   pub struct backend;
   }
  } else {
   quote! {}
@@ -53,7 +44,7 @@ pub fn wasm_only(
  _args: proc_macro::TokenStream,
  input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
- let orig_fn = parse_macro_input!(input as syn::ItemFn);
+ let orig_fn = syn::parse_macro_input!(input as syn::ItemFn);
  proc_macro::TokenStream::from(quote! {
   #[cfg(target_arch = "wasm32")]
   #[wasm_bindgen(js_class = wasm_only)]
@@ -71,8 +62,19 @@ pub fn backend(
  _args: proc_macro::TokenStream,
  input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
- let orig_fn = parse_macro_input!(input as syn::ItemFn);
+ match syn::parse_macro_input!(input as syn::Item) {
+  syn::Item::Fn(orig_fn) => backend_fn(orig_fn),
+  syn::Item::Struct(orig_struct) => backend_struct(orig_struct),
+  _ => abort_call_site!("Apply #[backend] to functions and structs"),
+ }
+}
 
+fn backend_struct(orig_struct: syn::ItemStruct) -> proc_macro::TokenStream {
+ dbg!(orig_struct);
+ proc_macro::TokenStream::from(quote! {})
+}
+
+fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro::TokenStream {
  let orig_fn_ident = orig_fn.sig.ident.clone();
  let orig_fn_string = orig_fn_ident.to_string();
  let orig_fn_params = orig_fn.sig.inputs.clone();
@@ -81,10 +83,7 @@ pub fn backend(
   syn::ReturnType::Default => None,
   syn::ReturnType::Type(_, path) => Some(*path),
  };
-
- // If return type is `Result<T, E>`, extract `T` so that `E` can be exchanged for `String` / `JsValue` for serialization and JS throws
- let result_inner_ty = orig_fn_ret_ty.clone().map(extract_result_inner_ty).flatten();
-
+ let result_inner_ty = orig_fn_ret_ty.clone().map(extract_result::inner_ty).flatten();
  let orig_fn_ret_ty = match orig_fn_ret_ty {
   Some(ty) => quote! { #ty },
   None => quote! { () },
@@ -158,21 +157,20 @@ pub fn backend(
   }
 
   #[cfg(target_arch = "wasm32")]
+  #[allow(non_snake_case)]
   async fn #impl_fn_ident(#orig_fn_params) -> #serialize_ret_ty {
-   {
-    let tx = ::turbocharger::_Transaction::new();
-    let req = ::turbocharger::bincode::serialize(&#req {
-     typetag_const_one: 1,
-     dispatch_name: #orig_fn_string,
-     txid: tx.txid,
-     params: (#( #orig_fn_param_names_cloned ),* #orig_fn_params_maybe_comma),
-    })
-    .unwrap();
-    let response = tx.run(req).await;
-    let #resp { result, .. } =
-     ::turbocharger::bincode::deserialize(&response).unwrap();
-    result
-   }
+   let tx = ::turbocharger::_Transaction::new();
+   let req = ::turbocharger::bincode::serialize(&#req {
+    typetag_const_one: 1,
+    dispatch_name: #orig_fn_string,
+    txid: tx.txid,
+    params: (#( #orig_fn_param_names_cloned ),* #orig_fn_params_maybe_comma),
+   })
+   .unwrap();
+   let response = tx.run(req).await;
+   let #resp { result, .. } =
+    ::turbocharger::bincode::deserialize(&response).unwrap();
+   result
   }
 
   #[allow(non_camel_case_types)]
@@ -186,7 +184,7 @@ pub fn backend(
   }
 
   #[allow(non_camel_case_types)]
-  #[derive(::turbocharger::serde::Serialize, ::turbocharger::serde::Deserialize, Debug)]
+  #[derive(::turbocharger::serde::Serialize, ::turbocharger::serde::Deserialize)]
   #[serde(crate = "::turbocharger::serde")]
   struct #dispatch {
    txid: i64,
@@ -200,39 +198,5 @@ pub fn backend(
    txid: i64,
    result: #serialize_ret_ty,
   }
-
  })
-}
-
-fn extract_result_inner_ty(orig_fn_ret_ty: Type) -> Option<syn::GenericArgument> {
- let typepath = match orig_fn_ret_ty {
-  syn::Type::Path(typepath) => Some(typepath),
-  _ => None,
- };
- let path = match typepath {
-  Some(syn::TypePath { path, .. }) => Some(path),
-  _ => None,
- };
- let pair = match path {
-  Some(syn::Path { mut segments, .. }) => segments.pop(),
-  _ => None,
- };
- let (is_result, arguments) = match pair.map(|pair| pair.into_value()) {
-  Some(syn::PathSegment { ident, arguments }) => (ident == "Result", Some(arguments)),
-  _ => (false, None),
- };
- if !is_result {
-  return None;
- }
- let anglebracketedgenericarguments = match arguments {
-  Some(syn::PathArguments::AngleBracketed(anglebracketedgenericarguments)) => {
-   Some(anglebracketedgenericarguments)
-  }
-  _ => None,
- };
- let args = match anglebracketedgenericarguments {
-  Some(syn::AngleBracketedGenericArguments { args, .. }) => Some(args),
-  _ => None,
- };
- args.map(|args| args.into_iter().next()).flatten()
 }
