@@ -83,56 +83,24 @@ pub fn backend(
  };
 
  // If return type is `Result<T, E>`, extract `T` so that `E` can be exchanged for `String` / `JsValue` for serialization and JS throws
-
- let typepath = match orig_fn_ret_ty.clone() {
-  Some(syn::Type::Path(typepath)) => Some(typepath),
-  _ => None,
- };
- let path = match typepath {
-  Some(syn::TypePath { path, .. }) => Some(path),
-  _ => None,
- };
- let pair = match path {
-  Some(syn::Path { mut segments, .. }) => segments.pop(),
-  _ => None,
- };
- let (is_result, arguments) = match pair.map(|pair| pair.into_value()) {
-  Some(syn::PathSegment { ident, arguments }) => (ident == "Result", Some(arguments)),
-  _ => (false, None),
- };
- let anglebracketedgenericarguments = match arguments {
-  Some(syn::PathArguments::AngleBracketed(anglebracketedgenericarguments)) => {
-   Some(anglebracketedgenericarguments)
-  }
-  _ => None,
- };
- let args = match anglebracketedgenericarguments {
-  Some(syn::AngleBracketedGenericArguments { args, .. }) => Some(args),
-  _ => None,
- };
- let result_inner_ty = args.map(|args| args.into_iter().next());
+ let result_inner_ty = orig_fn_ret_ty.clone().map(extract_result_inner_ty).flatten();
 
  let orig_fn_ret_ty = match orig_fn_ret_ty {
   Some(ty) => quote! { #ty },
   None => quote! { () },
  };
 
- let bindgen_ret_ty = if is_result && result_inner_ty.is_some() {
-  quote! { Result<#result_inner_ty, JsValue> }
- } else {
-  quote! { #orig_fn_ret_ty }
+ let bindgen_ret_ty = match &result_inner_ty {
+  Some(ty) => quote! { Result<#ty, JsValue> },
+  None => quote! { #orig_fn_ret_ty },
  };
-
- let serialize_ret_ty = if is_result && result_inner_ty.is_some() {
-  quote! { Result<#result_inner_ty, String> }
- } else {
-  quote! { #orig_fn_ret_ty }
+ let serialize_ret_ty = match &result_inner_ty {
+  Some(ty) => quote! { Result<#ty, String> },
+  None => quote! { #orig_fn_ret_ty },
  };
-
- let maybe_map_err = if is_result && result_inner_ty.is_some() {
-  quote! { .map_err(|e| e.to_string().into()) }
- } else {
-  quote! {}
+ let maybe_map_err = match &result_inner_ty {
+  Some(_) => quote! { .map_err(|e| e.to_string().into()) },
+  None => quote! {},
  };
 
  let tuple_indexes = (0..orig_fn_params.len()).map(syn::Index::from);
@@ -234,4 +202,37 @@ pub fn backend(
   }
 
  })
+}
+
+fn extract_result_inner_ty(orig_fn_ret_ty: Type) -> Option<syn::GenericArgument> {
+ let typepath = match orig_fn_ret_ty {
+  syn::Type::Path(typepath) => Some(typepath),
+  _ => None,
+ };
+ let path = match typepath {
+  Some(syn::TypePath { path, .. }) => Some(path),
+  _ => None,
+ };
+ let pair = match path {
+  Some(syn::Path { mut segments, .. }) => segments.pop(),
+  _ => None,
+ };
+ let (is_result, arguments) = match pair.map(|pair| pair.into_value()) {
+  Some(syn::PathSegment { ident, arguments }) => (ident == "Result", Some(arguments)),
+  _ => (false, None),
+ };
+ if !is_result {
+  return None;
+ }
+ let anglebracketedgenericarguments = match arguments {
+  Some(syn::PathArguments::AngleBracketed(anglebracketedgenericarguments)) => {
+   Some(anglebracketedgenericarguments)
+  }
+  _ => None,
+ };
+ let args = match anglebracketedgenericarguments {
+  Some(syn::AngleBracketedGenericArguments { args, .. }) => Some(args),
+  _ => None,
+ };
+ args.map(|args| args.into_iter().next()).flatten()
 }
