@@ -13,6 +13,8 @@ export default {
     outDir: "frontend/src/turbocharger_generated",
    },
   ],
+  "@snowpack/plugin-svelte",
+  "@snowpack/plugin-postcss",
  ],
  exclude: ["**/*.json", "**/*.md"],
  optimize: {
@@ -20,6 +22,7 @@ export default {
   target: "es2020",
  },
  devOptions: {
+  tailwindConfig: "./tailwind.config.js",
   port: 8081,
  },
 };

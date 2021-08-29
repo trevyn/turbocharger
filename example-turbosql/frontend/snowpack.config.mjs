@@ -14,6 +14,7 @@ export default {
    },
   ],
  ],
+ exclude: ["**/*.json", "**/*.md"],
  optimize: {
   bundle: true,
   target: "es2020",

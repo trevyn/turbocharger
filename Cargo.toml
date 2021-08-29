@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "example-full",
   "example-minimal",
   "example-turbosql",
   "turbocharger",

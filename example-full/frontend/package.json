@@ -1,0 +1,20 @@
+{
+ "scripts": {
+  "start": "snowpack dev",
+  "build": "snowpack build",
+  "svelte-check": "svelte-check",
+  "reinstall-deps": "rm -rf node_modules && rm -rf package-lock.json && npm install",
+  "outdated": "npm outdated"
+ },
+ "devDependencies": {
+  "@emily-curry/snowpack-plugin-wasm-pack": "^1",
+  "@snowpack/plugin-postcss": "^1",
+  "@snowpack/plugin-svelte": "^3",
+  "postcss": "^8",
+  "snowpack": "^3",
+  "svelte": "^3",
+  "svelte-check": "^2",
+  "tailwindcss": "^2"
+ },
+ "dependencies": {}
+}
