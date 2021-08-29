@@ -21,7 +21,7 @@ pub fn server_only(
 ) -> proc_macro::TokenStream {
  let orig_fn = parse_macro_input!(input as syn::ItemFn);
 
- let maybe_inject_once = if orig_fn.sig.ident.to_string() == "main" {
+ let maybe_inject_once = if orig_fn.sig.ident == "main" {
   quote! {
    #[cfg(target_arch = "wasm32")]
    #[allow(non_camel_case_types)]
@@ -80,12 +80,9 @@ pub fn backend(
  let output = orig_fn.sig.output.clone();
  let ret_ty = match output {
   syn::ReturnType::Default => None,
-  syn::ReturnType::Type(_, path) => Some(path.clone()),
+  syn::ReturnType::Type(_, path) => Some(path),
  };
- let ret_ty = match ret_ty.clone() {
-  Some(path) => Some(*path),
-  None => None,
- };
+ let ret_ty = ret_ty.map(|path| *path);
  let typepath = match ret_ty {
   Some(syn::Type::Path(typepath)) => Some(typepath),
   _ => None,
@@ -105,10 +102,7 @@ pub fn backend(
   Some(syn::Path { mut segments, .. }) => segments.pop(),
   _ => None,
  };
- let pathsegment = match pair {
-  Some(pair) => Some(pair.into_value()),
-  _ => None,
- };
+ let pathsegment = pair.map(|pair| pair.into_value());
  let (is_result, arguments) = match pathsegment {
   Some(syn::PathSegment { ident, arguments }) => (ident == "Result", Some(arguments)),
   _ => (false, None),
@@ -126,10 +120,7 @@ pub fn backend(
   _ => None,
  };
 
- let result_inner_ty = match args {
-  Some(args) => Some(args.into_iter().next()),
-  _ => None,
- };
+ let result_inner_ty = args.map(|args| args.into_iter().next());
 
  let js_ret_ty = if is_result && result_inner_ty.is_some() {
   quote! { Result<#result_inner_ty, JsValue> }
@@ -149,7 +140,7 @@ pub fn backend(
   quote! {}
  };
 
- let tuple_indexes = (0..orig_fn_params.len()).map(|i| syn::Index::from(i));
+ let tuple_indexes = (0..orig_fn_params.len()).map(syn::Index::from);
  let orig_fn_param_names = orig_fn_params.iter().map(|p| match p {
   syn::FnArg::Receiver(_) => abort_call_site!("I don't know what to do with `self` here."),
   syn::FnArg::Typed(pattype) => match *pattype.pat.clone() {
@@ -164,7 +155,7 @@ pub fn backend(
  });
  let orig_fn_param_tys_cloned = orig_fn_param_tys.clone();
 
- let orig_fn_params_maybe_comma = if orig_fn_params.len() == 0 {
+ let orig_fn_params_maybe_comma = if orig_fn_params.is_empty() {
   quote! {}
  } else {
   quote! { , }
