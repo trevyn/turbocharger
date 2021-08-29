@@ -18,7 +18,7 @@ pub async fn get_backend_test() -> String {
 }
 
 #[backend]
-pub async fn get_backend_test_no_retval() -> () {}
+pub async fn get_backend_test_no_retval() {}
 
 #[backend]
 pub async fn get_backend_test_with_delay() -> String {

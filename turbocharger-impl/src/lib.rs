@@ -76,24 +76,18 @@ pub fn backend(
  let orig_fn_ident = orig_fn.sig.ident.clone();
  let orig_fn_string = orig_fn_ident.to_string();
  let orig_fn_params = orig_fn.sig.inputs.clone();
- let orig_fn_sig_output = orig_fn.sig.output.clone();
- let output = orig_fn.sig.output.clone();
- let ret_ty = match output {
-  syn::ReturnType::Default => None,
-  syn::ReturnType::Type(_, path) => Some(path),
- };
- let ret_ty = ret_ty.map(|path| *path);
- let typepath = match ret_ty {
-  Some(syn::Type::Path(typepath)) => Some(typepath),
-  _ => None,
- };
- let orig_fn_ret_ty = match orig_fn_sig_output {
+
+ let orig_fn_ret_ty = match orig_fn.sig.output.clone() {
   syn::ReturnType::Default => None,
   syn::ReturnType::Type(_, path) => Some(*path),
  };
 
  // If return type is `Result<T, E>`, extract `T` so that `E` can be exchanged for `String` / `JsValue` for serialization and JS throws
 
+ let typepath = match orig_fn_ret_ty.clone() {
+  Some(syn::Type::Path(typepath)) => Some(typepath),
+  _ => None,
+ };
  let path = match typepath {
   Some(syn::TypePath { path, .. }) => Some(path),
   _ => None,
@@ -102,27 +96,28 @@ pub fn backend(
   Some(syn::Path { mut segments, .. }) => segments.pop(),
   _ => None,
  };
- let pathsegment = pair.map(|pair| pair.into_value());
- let (is_result, arguments) = match pathsegment {
+ let (is_result, arguments) = match pair.map(|pair| pair.into_value()) {
   Some(syn::PathSegment { ident, arguments }) => (ident == "Result", Some(arguments)),
   _ => (false, None),
  };
-
  let anglebracketedgenericarguments = match arguments {
   Some(syn::PathArguments::AngleBracketed(anglebracketedgenericarguments)) => {
    Some(anglebracketedgenericarguments)
   }
   _ => None,
  };
-
  let args = match anglebracketedgenericarguments {
   Some(syn::AngleBracketedGenericArguments { args, .. }) => Some(args),
   _ => None,
  };
-
  let result_inner_ty = args.map(|args| args.into_iter().next());
 
- let js_ret_ty = if is_result && result_inner_ty.is_some() {
+ let orig_fn_ret_ty = match orig_fn_ret_ty {
+  Some(ty) => quote! { #ty },
+  None => quote! { () },
+ };
+
+ let bindgen_ret_ty = if is_result && result_inner_ty.is_some() {
   quote! { Result<#result_inner_ty, JsValue> }
  } else {
   quote! { #orig_fn_ret_ty }
@@ -167,12 +162,6 @@ pub fn backend(
  let resp = format_ident!("_TURBOCHARGER_RESP_{}", orig_fn_ident);
  let impl_fn_ident = format_ident!("_TURBOCHARGER_IMPL_{}", orig_fn_ident);
 
- // let orig_fn_ret_ty = if orig_fn_ret_ty.is_some() {
- //  quote! { #orig_fn_ret_ty }
- // } else {
- //  quote! { () }
- // };
-
  proc_macro::TokenStream::from(quote! {
   #[cfg(not(target_arch = "wasm32"))]
   #orig_fn
@@ -196,7 +185,7 @@ pub fn backend(
 
   #[cfg(target_arch = "wasm32")]
   #[wasm_bindgen]
-  pub async fn #orig_fn_ident(#orig_fn_params) -> #js_ret_ty {
+  pub async fn #orig_fn_ident(#orig_fn_params) -> #bindgen_ret_ty {
    #impl_fn_ident(#( #orig_fn_param_names ),*) .await #maybe_map_err
   }
 
