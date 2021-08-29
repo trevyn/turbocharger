@@ -40,6 +40,7 @@ jobs:
       - uses: hecrj/setup-rust-action@v1
         with:
           rust-version: ${{ matrix.rust }}
+          components: clippy
           targets: wasm32-unknown-unknown
 
       - run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
