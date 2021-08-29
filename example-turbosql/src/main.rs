@@ -23,7 +23,7 @@ impl Person {
 }
 
 #[backend]
-pub async fn insert_person(p: Person) -> Result<i64, turbosql::Error> {
+async fn insert_person(p: Person) -> Result<i64, turbosql::Error> {
  p.insert() // returns rowid
 }
 
