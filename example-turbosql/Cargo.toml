@@ -12,7 +12,6 @@ path = "src/main.rs"
 
 [dependencies]
 # dependencies for both server and wasm
-serde = {version = "1", features = ["derive"]}
 turbocharger = {path = "../turbocharger", version = "0.1"}
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"

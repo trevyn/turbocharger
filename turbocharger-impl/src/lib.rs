@@ -70,8 +70,24 @@ pub fn backend(
 }
 
 fn backend_struct(orig_struct: syn::ItemStruct) -> proc_macro::TokenStream {
- dbg!(orig_struct);
- proc_macro::TokenStream::from(quote! {})
+ let syn::ItemStruct { attrs, ident, fields, .. } = orig_struct;
+
+ proc_macro::TokenStream::from(quote! {
+  #[wasm_bindgen(getter_with_clone, inspectable)]
+  #[derive(::turbocharger::serde::Serialize, ::turbocharger::serde::Deserialize, Clone, Debug, Default)]
+  #(#attrs)*
+  #[serde(crate = "::turbocharger::serde")]
+  pub struct #ident #fields
+
+  #[cfg(target_arch = "wasm32")]
+  #[wasm_bindgen]
+  impl #ident {
+   #[wasm_bindgen(constructor)]
+   pub fn new() -> #ident {
+    #ident::default()
+   }
+  }
+ })
 }
 
 fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro::TokenStream {
