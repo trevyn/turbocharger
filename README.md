@@ -115,7 +115,6 @@ async fn get_wasm_greeting() -> String {
 
 - Better WebSocket status management / reconnect
 - Streaming responses with `futures::stream`
-- Verify `Vec<T>` types, see [wasm-bindgen#111](https://github.com/rustwasm/wasm-bindgen/issues/111)
 - Many things [`tarpc`](https://github.com/google/tarpc) does, particularly around timeouts and cancellation.
 
 ### License: MIT OR Apache-2.0 OR CC0-1.0 (public domain)
