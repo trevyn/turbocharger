@@ -28,12 +28,12 @@ pub async fn get_backend_test_with_delay() -> String {
 
 #[backend]
 pub async fn get_backend_test_with_string(name: String) -> String {
- format!("Hello from get_backend_test_with_string, {}!", name).to_string()
+ format!("Hello from get_backend_test_with_string, {}!", name)
 }
 
 #[backend]
 pub async fn get_backend_test_with_i64_i32(one: i64, two: i32) -> String {
- format!("Hello from get_backend_test_with_i64_i32, one:{}, two:{}!", one, two).to_string()
+ format!("Hello from get_backend_test_with_i64_i32, one:{}, two:{}!", one, two)
 }
 
 #[server_only]
