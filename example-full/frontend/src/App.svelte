@@ -3,6 +3,9 @@
 
  (async () => {
   let person = Object.assign(new backend.Person(), { name: "Bob" });
+
+  // let person2 = new backend.Person({ name: "bob" });
+
   let rowid = await backend.insert_person(person);
   console.log("Inserted rowid ", rowid);
  })();

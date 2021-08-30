@@ -24,6 +24,10 @@ async fn get_person(rowid: i64) -> Result<Person, turbosql::Error> {
 #[server_only]
 #[tokio::main]
 async fn main() {
+ #[derive(rust_embed::RustEmbed)]
+ #[folder = "frontend/build"]
+ struct Frontend;
+
  eprintln!("Serving on http://127.0.0.1:8080");
- warp::serve(turbocharger::warp_routes()).run(([127, 0, 0, 1], 8080)).await;
+ warp::serve(turbocharger::warp_routes(Frontend)).run(([127, 0, 0, 1], 8080)).await;
 }

@@ -53,11 +53,45 @@ extern "C" {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub fn warp_routes() -> warp::filters::BoxedFilter<(impl warp::Reply,)> {
+pub fn warp_routes<A: 'static + rust_embed::RustEmbed>(
+ asset: A,
+) -> warp::filters::BoxedFilter<(impl warp::Reply,)> {
+ use warp::Filter;
+ warp_socket_route().or(warp_rust_embed_route(asset)).boxed()
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn warp_socket_route() -> warp::filters::BoxedFilter<(impl warp::Reply,)> {
  use warp::Filter;
  warp::path("turbocharger_socket")
   .and(warp::ws())
   .map(|ws: warp::ws::Ws| ws.on_upgrade(accept_connection))
+  .boxed()
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn warp_rust_embed_route<A: rust_embed::RustEmbed>(
+ _asset: A,
+) -> warp::filters::BoxedFilter<(impl warp::Reply,)> {
+ use warp::Filter;
+ warp::path::full()
+  .map(|path: warp::path::FullPath| {
+   let path = match path.as_str().trim_start_matches('/') {
+    "" => "index.html",
+    path => path,
+   };
+   match A::get(path) {
+    None => warp::http::Response::builder().status(404).body("404 not found!".into()).unwrap(),
+    Some(asset) => {
+     let mime = mime_guess::from_path(path).first_or_octet_stream();
+     let mut res = warp::reply::Response::new(asset.data.into());
+     res
+      .headers_mut()
+      .insert("content-type", warp::http::header::HeaderValue::from_str(mime.as_ref()).unwrap());
+     res
+    }
+   }
+  })
   .boxed()
 }
 
