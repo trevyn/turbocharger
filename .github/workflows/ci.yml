@@ -54,15 +54,15 @@ jobs:
       - run: npm audit
         working-directory: 'example-minimal/frontend'
 
-      - run: cargo clippy -- -Dwarnings
-        working-directory: 'example-minimal'
-
       - run: cargo build --lib --target=wasm32-unknown-unknown --release
         working-directory: 'example-minimal'
 
       - run: npm run build
         working-directory: 'example-minimal/frontend'
 
+      - run: cargo clippy -- -Dwarnings
+        working-directory: 'example-minimal'
+
       - run: cargo build
         working-directory: 'example-minimal'
 
@@ -73,14 +73,14 @@ jobs:
       - run: npm audit
         working-directory: 'example-turbosql/frontend'
 
-      - run: cargo clippy -- -Dwarnings
-        working-directory: 'example-turbosql'
-
       - run: cargo build --lib --target=wasm32-unknown-unknown --release
         working-directory: 'example-turbosql'
 
       - run: npm run build
         working-directory: 'example-turbosql/frontend'
+
+      - run: cargo clippy -- -Dwarnings
+        working-directory: 'example-turbosql'
 
       - run: cargo build
         working-directory: 'example-turbosql'
@@ -92,14 +92,14 @@ jobs:
       - run: npm audit
         working-directory: 'example-full/frontend'
 
-      - run: cargo clippy -- -Dwarnings
-        working-directory: 'example-full'
-
       - run: cargo build --lib --target=wasm32-unknown-unknown --release
         working-directory: 'example-full'
 
       - run: npm run build
         working-directory: 'example-full/frontend'
+
+      - run: cargo clippy -- -Dwarnings
+        working-directory: 'example-full'
 
       - run: cargo build
         working-directory: 'example-full'
