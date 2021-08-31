@@ -1,0 +1,23 @@
+{
+ "scripts": {
+  "start": "if [ ! -d node_modules ]; then npm install; fi && cargo build --lib --target wasm32-unknown-unknown && npx snowpack build && cargo run",
+  "watch": "cargo watch -s \"if [ ! -d node_modules ]; then npm install; fi && cargo build --lib --target wasm32-unknown-unknown && npx snowpack build && cargo run\"",
+  "hmr": "snowpack dev",
+  "build": "if [ ! -d node_modules ]; then npm install; fi && cargo build --lib --release --target wasm32-unknown-unknown && npx snowpack build && cargo build --release",
+  "lint": "cargo clippy -- -Dwarnings && svelte-check",
+  "outdated-deps": "npm outdated && cargo update --dry-run",
+  "update-deps": "npm update && cargo update",
+  "reinstall-js-deps": "rm -rf node_modules && rm -rf package-lock.json && npm install"
+ },
+ "devDependencies": {
+  "@emily-curry/snowpack-plugin-wasm-pack": "^1",
+  "@snowpack/plugin-postcss": "^1",
+  "@snowpack/plugin-svelte": "^3",
+  "postcss": "^8",
+  "snowpack": "^3",
+  "svelte": "^3",
+  "svelte-check": "^2",
+  "tailwindcss": "^2"
+ },
+ "dependencies": {}
+}

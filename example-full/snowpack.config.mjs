@@ -1,7 +1,7 @@
 /** @type {import("snowpack").SnowpackUserConfig } */
 export default {
  mount: {
-  "./src": {
+  "./src-frontend": {
    url: "/",
   },
  },
@@ -9,8 +9,8 @@ export default {
   [
    "@emily-curry/snowpack-plugin-wasm-pack",
    {
-    projectPath: "..",
-    outDir: "frontend/src/turbocharger_generated",
+    projectPath: ".",
+    outDir: "src-frontend/turbocharger_generated",
    },
   ],
   "@snowpack/plugin-svelte",

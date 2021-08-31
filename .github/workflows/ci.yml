@@ -86,20 +86,9 @@ jobs:
         working-directory: 'example-turbosql'
 
 
-      - run: npm install
-        working-directory: 'example-full/frontend'
-
-      - run: npm audit
-        working-directory: 'example-full/frontend'
-
-      - run: cargo build --lib --target=wasm32-unknown-unknown --release
-        working-directory: 'example-full'
-
       - run: npm run build
-        working-directory: 'example-full/frontend'
-
-      - run: cargo clippy -- -Dwarnings
         working-directory: 'example-full'
-
-      - run: cargo build
+      - run: npm audit
+        working-directory: 'example-full'
+      - run: npm lint
         working-directory: 'example-full'
