@@ -90,5 +90,5 @@ jobs:
         working-directory: 'example-full'
       - run: npm audit
         working-directory: 'example-full'
-      - run: npm lint
+      - run: npm run lint
         working-directory: 'example-full'
