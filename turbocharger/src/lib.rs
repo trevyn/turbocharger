@@ -4,6 +4,8 @@ pub use turbocharger_impl::{backend, server_only, wasm_only};
 pub use async_trait::async_trait;
 pub use bincode;
 use futures::{SinkExt, StreamExt};
+#[cfg(target_arch = "wasm32")]
+pub use js_sys;
 pub use serde;
 #[cfg(target_arch = "wasm32")]
 use std::{cell::RefCell, collections::HashMap};

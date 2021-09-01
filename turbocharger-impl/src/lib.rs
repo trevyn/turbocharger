@@ -113,8 +113,12 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro::TokenStream {
   Some(ty) => quote! { Result<#ty, String> },
   None => quote! { #orig_fn_ret_ty },
  };
- let maybe_map_err = match &result_inner_ty {
-  Some(_) => quote! { .map_err(|e| e.to_string().into()) },
+ let maybe_map_err_string = match &result_inner_ty {
+  Some(_) => quote! { .map_err(|e| e.to_string()) },
+  None => quote! {},
+ };
+ let maybe_map_err_jsvalue = match &result_inner_ty {
+  Some(_) => quote! { .map_err(|e| ::turbocharger::js_sys::Error::new(&e).into()) },
   None => quote! {},
  };
 
@@ -159,7 +163,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro::TokenStream {
     async fn execute(&self) -> Vec<u8> {
      let response = super::#resp {
       txid: self.txid,
-      result: super::#orig_fn_ident(#( self.params. #tuple_indexes .clone() ),*).await #maybe_map_err,
+      result: super::#orig_fn_ident(#( self.params. #tuple_indexes .clone() ),*).await #maybe_map_err_string,
      };
      ::turbocharger::bincode::serialize(&response).unwrap()
     }
@@ -169,7 +173,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro::TokenStream {
   #[cfg(target_arch = "wasm32")]
   #[wasm_bindgen]
   pub async fn #orig_fn_ident(#orig_fn_params) -> #bindgen_ret_ty {
-   #impl_fn_ident(#( #orig_fn_param_names ),*) .await #maybe_map_err
+   #impl_fn_ident(#( #orig_fn_param_names ),*) .await #maybe_map_err_jsvalue
   }
 
   #[cfg(target_arch = "wasm32")]
