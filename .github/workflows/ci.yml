@@ -45,7 +45,7 @@ jobs:
 
       - run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
-      - run: cargo install wasm-bindgen-cli --git https://github.com/Jules-Bertholet/wasm-bindgen --branch jsvalue-math
+      - run: cargo install wasm-bindgen-cli --git https://github.com/rustwasm/wasm-bindgen
 
 
       - run: npm install

@@ -8,7 +8,7 @@ members = [
 ]
 
 [patch.crates-io]
-js-sys = {git = "https://github.com/Jules-Bertholet/wasm-bindgen", branch = "jsvalue-math"}
-wasm-bindgen = {git = "https://github.com/Jules-Bertholet/wasm-bindgen", branch = "jsvalue-math"}
-wasm-bindgen-futures = {git = "https://github.com/Jules-Bertholet/wasm-bindgen", branch = "jsvalue-math"}
-web-sys = {git = "https://github.com/Jules-Bertholet/wasm-bindgen", branch = "jsvalue-math"}
+js-sys = {git = "https://github.com/rustwasm/wasm-bindgen"}
+wasm-bindgen = {git = "https://github.com/rustwasm/wasm-bindgen"}
+wasm-bindgen-futures = {git = "https://github.com/rustwasm/wasm-bindgen"}
+web-sys = {git = "https://github.com/rustwasm/wasm-bindgen"}
