@@ -36,6 +36,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: 'true'
 
       - uses: hecrj/setup-rust-action@v1
         with:
@@ -87,8 +89,8 @@ jobs:
 
 
       - run: npm run build
-        working-directory: 'example-full'
+        working-directory: 'turbocharger-template'
       - run: npm audit
-        working-directory: 'example-full'
+        working-directory: 'turbocharger-template'
       - run: npm run lint
-        working-directory: 'example-full'
+        working-directory: 'turbocharger-template'

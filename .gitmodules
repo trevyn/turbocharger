@@ -1,0 +1,3 @@
+[submodule "turbocharger-template"]
+	path = turbocharger-template
+	url = https://github.com/trevyn/turbocharger-template
