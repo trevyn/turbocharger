@@ -49,48 +49,11 @@ jobs:
 
       - run: cargo install wasm-bindgen-cli --git https://github.com/rustwasm/wasm-bindgen
 
-
-      - run: npm install
-        working-directory: 'example-minimal/frontend'
-
-      - run: npm audit
-        working-directory: 'example-minimal/frontend'
-
-      - run: cargo build --lib --target=wasm32-unknown-unknown --release
-        working-directory: 'example-minimal'
-
-      - run: npm run build
-        working-directory: 'example-minimal/frontend'
-
-      - run: cargo clippy -- -Dwarnings
-        working-directory: 'example-minimal'
-
-      - run: cargo build
-        working-directory: 'example-minimal'
-
-
-      - run: npm install
-        working-directory: 'example-turbosql/frontend'
-
-      - run: npm audit
-        working-directory: 'example-turbosql/frontend'
-
-      - run: cargo build --lib --target=wasm32-unknown-unknown --release
-        working-directory: 'example-turbosql'
-
-      - run: npm run build
-        working-directory: 'example-turbosql/frontend'
-
-      - run: cargo clippy -- -Dwarnings
-        working-directory: 'example-turbosql'
-
-      - run: cargo build
-        working-directory: 'example-turbosql'
-
-
       - run: npm run build
         working-directory: 'turbocharger-template'
       - run: npm audit
         working-directory: 'turbocharger-template'
       - run: npm run lint
+        working-directory: 'turbocharger-template'
+      - run: npm run ci-test
         working-directory: 'turbocharger-template'
