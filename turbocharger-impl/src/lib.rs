@@ -23,6 +23,9 @@ pub fn server_only(
    #[allow(non_camel_case_types)]
    #[wasm_bindgen]
    pub struct wasm_only;
+
+   #[cfg(target_arch = "wasm32")]
+   fn main() {}
   }
  } else {
   quote! {}
