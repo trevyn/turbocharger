@@ -55,5 +55,5 @@ jobs:
         working-directory: 'turbocharger-template'
       - run: npm run lint
         working-directory: 'turbocharger-template'
-      - run: npm run ci-test
+      - run: npm run test-ci
         working-directory: 'turbocharger-template'
