@@ -167,6 +167,13 @@ impl _Transaction {
 }
 
 #[cfg(target_arch = "wasm32")]
+impl Default for _Transaction {
+ fn default() -> Self {
+  Self::new()
+ }
+}
+
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(start)]
 pub async fn start() -> Result<(), JsValue> {
  use std::convert::TryInto;
