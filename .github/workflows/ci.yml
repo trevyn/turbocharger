@@ -53,7 +53,5 @@ jobs:
         working-directory: 'turbocharger-template'
       - run: npm audit
         working-directory: 'turbocharger-template'
-      - run: npm run lint
-        working-directory: 'turbocharger-template'
       - run: npm run test-ci
         working-directory: 'turbocharger-template'
