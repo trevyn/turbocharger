@@ -101,7 +101,7 @@ pub fn warp_rust_embed_route<A: rust_embed::RustEmbed>(
 async fn accept_connection(ws: warp::ws::WebSocket) {
  use futures::TryFutureExt;
 
- eprintln!("accept_connection");
+ log::debug!("accept_connection");
 
  let (mut ws_tx, mut ws_rx) = ws.split();
  let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
@@ -112,7 +112,7 @@ async fn accept_connection(ws: warp::ws::WebSocket) {
    ws_tx
     .send(msg)
     .unwrap_or_else(|e| {
-     eprintln!("websocket send error: {}", e);
+     log::warn!("websocket send error: {}", e);
     })
     .await;
   }
@@ -122,7 +122,7 @@ async fn accept_connection(ws: warp::ws::WebSocket) {
   let msg = match result {
    Ok(msg) => msg,
    Err(e) => {
-    eprintln!("websocket error: {}", e);
+    log::warn!("websocket error: {}", e);
     break;
    }
   };
@@ -134,7 +134,7 @@ async fn accept_connection(ws: warp::ws::WebSocket) {
   });
  }
 
- eprintln!("accept_connection completed")
+ log::warn!("accept_connection completed")
 }
 
 #[cfg(target_arch = "wasm32")]
