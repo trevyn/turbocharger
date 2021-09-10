@@ -4,20 +4,25 @@
 pub use turbocharger_impl::{backend, server_only, wasm_only};
 
 #[cfg(not(target_arch = "wasm32"))]
+#[doc(hidden)]
 pub use async_trait::async_trait;
+#[doc(hidden)]
 pub use bincode;
 use futures::{SinkExt, StreamExt};
 #[cfg(target_arch = "wasm32")]
 pub use js_sys;
+#[doc(hidden)]
 pub use serde;
 #[cfg(target_arch = "wasm32")]
 use std::{cell::RefCell, collections::HashMap};
 #[cfg(not(target_arch = "wasm32"))]
+#[doc(hidden)]
 pub use typetag;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
 #[cfg(not(target_arch = "wasm32"))]
+#[doc(hidden)]
 #[typetag::serde]
 #[async_trait]
 pub trait RPC: Send + Sync {
