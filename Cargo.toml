@@ -6,11 +6,7 @@ members = [
 ]
 
 [patch.crates-io]
-js-sys = {git = "https://github.com/rustwasm/wasm-bindgen"}
 turbocharger = {path = './turbocharger'}
-wasm-bindgen = {git = "https://github.com/rustwasm/wasm-bindgen"}
-wasm-bindgen-futures = {git = "https://github.com/rustwasm/wasm-bindgen"}
-web-sys = {git = "https://github.com/rustwasm/wasm-bindgen"}
 
 [patch.'https://github.com/trevyn/turbocharger']
 turbocharger = {path = './turbocharger'}

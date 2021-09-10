@@ -32,7 +32,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-11.0]
-        rust: [stable, beta, nightly]
+        rust: [1.54, stable, beta, nightly]
+#              1.54 is minimum rustc version
 
     steps:
       - uses: actions/checkout@v2
@@ -46,8 +47,6 @@ jobs:
           targets: wasm32-unknown-unknown
 
       - run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-
-      - run: cargo install wasm-bindgen-cli --git https://github.com/rustwasm/wasm-bindgen
 
       - run: git submodule update --remote
 
