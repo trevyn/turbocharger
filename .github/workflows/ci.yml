@@ -3,7 +3,7 @@ name: ci
 on:
   push:
   pull_request:
-  schedule: [cron: '40 2 * * *']
+  schedule: [cron: '40 8 * * *']
 
 env:
   CARGO_TERM_COLOR: always
@@ -19,7 +19,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          args: ./**/*.* --verbose --no-progress --exclude-all-private --headers="accept=text/html"
+          args: ./**/*.* --verbose --no-progress --exclude-all-private --base="http://127.0.0.1" --headers="accept=text/html" --scheme=http --scheme=https --scheme=mailto
 
       - name: Fail if there were link-check errors
         run: exit ${{ steps.lychee.outputs.exit_code }}
@@ -32,8 +32,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-11.0]
-        rust: [1.54, stable, beta, nightly]
+        rust: [1.54, stable, beta, nightly-2021-09-16]
 #              1.54 is minimum rustc version
+        # nightly pinned due to https://github.com/rust-lang/cargo/issues/9919
+
 
     steps:
       - uses: actions/checkout@v2
