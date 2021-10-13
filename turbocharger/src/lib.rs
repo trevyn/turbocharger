@@ -136,9 +136,12 @@ async fn accept_connection(ws: warp::ws::WebSocket) {
   };
   let tx_clone = tx.clone();
   tokio::task::spawn(async move {
-   let target_func: Box<dyn RPC> = bincode::deserialize(msg.as_bytes()).unwrap();
-   let response = target_func.execute().await;
-   tx_clone.send(warp::ws::Message::binary(response)).unwrap();
+   let msg = msg.as_bytes();
+   if !msg.is_empty() {
+    let target_func: Box<dyn RPC> = bincode::deserialize(msg).unwrap();
+    let response = target_func.execute().await;
+    tx_clone.send(warp::ws::Message::binary(response)).unwrap();
+   }
   });
  }
 
