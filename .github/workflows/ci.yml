@@ -24,7 +24,7 @@ jobs:
       - name: Fail if there were link-check errors
         run: exit ${{ steps.lychee.outputs.exit_code }}
 
-  build:
+  test:
     name: build ${{ matrix.os }} rust ${{ matrix.rust }}
     runs-on: ${{ matrix.os }}
 
@@ -56,3 +56,27 @@ jobs:
         working-directory: 'turbocharger-template'
       - run: npm run test-ci
         working-directory: 'turbocharger-template'
+      - run: cargo doc --no-deps
+        working-directory: 'turbocharger'
+
+  publish:
+    needs: [checklinks, test]
+    runs-on: ubuntu-latest
+    if: ${{ contains(github.event.head_commit.message, 'turbocharger@') && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'true'
+
+      - uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: stable
+
+      - name: cargo publish turbocharger-impl
+        run: cargo publish --no-verify --allow-dirty --token ${{ secrets.CARGO_TOKEN }}
+        working-directory: 'turbocharger-impl'
+
+      - name: cargo publish turbocharger
+        run: cargo publish --no-verify --allow-dirty --token ${{ secrets.CARGO_TOKEN }}
+        working-directory: 'turbocharger'
