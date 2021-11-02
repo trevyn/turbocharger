@@ -32,8 +32,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-11.0]
-        rust: [1.54, stable, beta, nightly]
-#              1.54 is minimum rustc version
+        rust: [1.56, stable, beta, nightly]
+#              1.56 is minimum rustc version
 
     steps:
       - uses: actions/checkout@v2
