@@ -52,7 +52,7 @@ jobs:
 
       - run: npm run build
         working-directory: 'turbocharger-template'
-      - run: npx audit-ci --low -a 1002401
+      - run: npx audit-ci --low -a 1006724
         working-directory: 'turbocharger-template'
       - run: npm run test-ci
         working-directory: 'turbocharger-template'
