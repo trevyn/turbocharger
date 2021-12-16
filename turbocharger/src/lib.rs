@@ -202,12 +202,7 @@ pub async fn start() -> Result<(), JsValue> {
   _ => "ws:",
  };
 
- let socket_url = format!(
-  "{}//{}:{}/turbocharger_socket",
-  protocol,
-  location.host().unwrap(),
-  location.port().unwrap()
- );
+ let socket_url = format!("{}//{}/turbocharger_socket", protocol, location.host().unwrap());
 
  console_log!("connecting to {}", socket_url);
 
