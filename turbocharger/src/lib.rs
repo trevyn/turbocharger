@@ -202,6 +202,9 @@ pub async fn start() -> Result<(), JsValue> {
   _ => "ws:",
  };
 
+ #[cfg(turbocharger_test)]
+ let socket_url = "ws://localhost:8080/turbocharger_socket";
+ #[cfg(not(turbocharger_test))]
  let socket_url = format!("{}//{}/turbocharger_socket", protocol, location.host().unwrap());
 
  console_log!("connecting to {}", socket_url);

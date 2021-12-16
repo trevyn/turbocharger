@@ -28,6 +28,9 @@ jobs:
     name: build ${{ matrix.os }} rust ${{ matrix.rust }}
     runs-on: ${{ matrix.os }}
 
+    env:
+      RUSTFLAGS: '--cfg turbocharger_test'
+
     strategy:
       fail-fast: false
       matrix:
