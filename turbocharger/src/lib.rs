@@ -195,10 +195,23 @@ pub async fn start() -> Result<(), JsValue> {
   g.borrow_mut().channel_tx = Some(channel_tx);
  });
 
- console_log!("connecting");
+ let location = web_sys::window().unwrap().location();
 
- let (_ws, wsio) =
-  ws_stream_wasm::WsMeta::connect("ws://127.0.0.1:8080/turbocharger_socket", None).await.unwrap();
+ let protocol = match location.protocol().unwrap().as_str() {
+  "https:" => "wss:",
+  _ => "ws:",
+ };
+
+ let socket_url = format!(
+  "{}//{}:{}/turbocharger_socket",
+  protocol,
+  location.host().unwrap(),
+  location.port().unwrap()
+ );
+
+ console_log!("connecting to {}", socket_url);
+
+ let (_ws, wsio) = ws_stream_wasm::WsMeta::connect(socket_url, None).await.unwrap();
 
  console_log!("connected");
 
