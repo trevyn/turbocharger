@@ -187,8 +187,6 @@ impl Default for _Transaction {
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(start)]
 pub async fn start() -> Result<(), JsValue> {
- use std::convert::TryInto;
-
  console_error_panic_hook::set_once();
 
  let (channel_tx, mut channel_rx) = futures::channel::mpsc::unbounded();
