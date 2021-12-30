@@ -32,6 +32,9 @@ pub fn server_only(
  };
 
  proc_macro::TokenStream::from(quote! {
+  #[allow(unused_imports)]
+  use wasm_bindgen::prelude::*;
+
   #maybe_inject_once
 
   #[cfg(not(target_arch = "wasm32"))]
@@ -49,6 +52,9 @@ pub fn wasm_only(
 ) -> proc_macro::TokenStream {
  let orig_fn = syn::parse_macro_input!(input as syn::ItemFn);
  proc_macro::TokenStream::from(quote! {
+  #[allow(unused_imports)]
+  use wasm_bindgen::prelude::*;
+
   #[cfg(target_arch = "wasm32")]
   #[wasm_bindgen(js_class = wasm_only)]
   impl wasm_only {
@@ -84,6 +90,9 @@ fn backend_struct(orig_struct: syn::ItemStruct) -> proc_macro::TokenStream {
  let syn::ItemStruct { attrs, ident, fields, .. } = orig_struct;
 
  proc_macro::TokenStream::from(quote! {
+  #[allow(unused_imports)]
+  use wasm_bindgen::prelude::*;
+
   #[wasm_bindgen(getter_with_clone, inspectable)]
   #[derive(::turbocharger::serde::Serialize, ::turbocharger::serde::Deserialize, Clone, Debug, Default)]
   #(#attrs)*
@@ -161,6 +170,9 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro::TokenStream {
  let impl_fn_ident = format_ident!("_TURBOCHARGER_IMPL_{}", orig_fn_ident);
 
  proc_macro::TokenStream::from(quote! {
+  #[allow(unused_imports)]
+  use wasm_bindgen::prelude::*;
+
   #[cfg(not(target_arch = "wasm32"))]
   #orig_fn
 
