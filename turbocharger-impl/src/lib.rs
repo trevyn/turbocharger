@@ -71,25 +71,42 @@ pub fn backend(
  _args: proc_macro::TokenStream,
  input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
- match syn::parse_macro_input!(input as syn::Item) {
-  syn::Item::Fn(orig_fn) => backend_fn(orig_fn),
-  syn::Item::Struct(orig_struct) => backend_struct(orig_struct),
-  syn::Item::Use(orig_use) => backend_use(orig_use),
-  _ => abort_call_site!("Apply #[backend] to functions, structs, and use statements."),
+ backend_item(syn::parse_macro_input!(input as syn::Item)).into()
+}
+
+fn backend_item(orig_item: syn::Item) -> proc_macro2::TokenStream {
+ match orig_item {
+  syn::Item::Fn(orig) => backend_fn(orig),
+  syn::Item::Struct(orig) => backend_struct(orig),
+  syn::Item::Use(orig) => backend_use(orig),
+  syn::Item::Mod(orig) => backend_mod(orig),
+  _ => abort_call_site!("Apply #[backend] to `fn`, `struct`, `use`, or `mod`."),
  }
 }
 
-fn backend_use(orig_use: syn::ItemUse) -> proc_macro::TokenStream {
- proc_macro::TokenStream::from(quote! {
-  #[cfg(not(target_arch = "wasm32"))]
-  #orig_use
- })
+fn backend_mod(orig_mod: syn::ItemMod) -> proc_macro2::TokenStream {
+ let items: Vec<_> = orig_mod
+  .content
+  .unwrap_or_else(|| abort_call_site!("Apply #[backend] to a `mod` with a body."))
+  .1
+  .into_iter()
+  .map(backend_item)
+  .collect();
+
+ quote! { #(#items)* }
 }
 
-fn backend_struct(orig_struct: syn::ItemStruct) -> proc_macro::TokenStream {
+fn backend_use(orig_use: syn::ItemUse) -> proc_macro2::TokenStream {
+ quote! {
+  #[cfg(not(target_arch = "wasm32"))]
+  #orig_use
+ }
+}
+
+fn backend_struct(orig_struct: syn::ItemStruct) -> proc_macro2::TokenStream {
  let syn::ItemStruct { attrs, ident, fields, .. } = orig_struct;
 
- proc_macro::TokenStream::from(quote! {
+ quote! {
   #[allow(unused_imports)]
   use wasm_bindgen::prelude::*;
 
@@ -107,10 +124,10 @@ fn backend_struct(orig_struct: syn::ItemStruct) -> proc_macro::TokenStream {
     #ident::default()
    }
   }
- })
+ }
 }
 
-fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro::TokenStream {
+fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
  let orig_fn_ident = orig_fn.sig.ident.clone();
  let orig_fn_string = orig_fn_ident.to_string();
  let orig_fn_params = orig_fn.sig.inputs.clone();
@@ -169,7 +186,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro::TokenStream {
  let resp = format_ident!("_TURBOCHARGER_RESP_{}", orig_fn_ident);
  let impl_fn_ident = format_ident!("_TURBOCHARGER_IMPL_{}", orig_fn_ident);
 
- proc_macro::TokenStream::from(quote! {
+ quote! {
   #[allow(unused_imports)]
   use wasm_bindgen::prelude::*;
 
@@ -241,5 +258,5 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro::TokenStream {
    txid: i64,
    result: #serialize_ret_ty,
   }
- })
+ }
 }
