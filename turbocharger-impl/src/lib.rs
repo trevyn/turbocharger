@@ -68,8 +68,16 @@ pub fn backend(
  match syn::parse_macro_input!(input as syn::Item) {
   syn::Item::Fn(orig_fn) => backend_fn(orig_fn),
   syn::Item::Struct(orig_struct) => backend_struct(orig_struct),
-  _ => abort_call_site!("Apply #[backend] to functions and structs"),
+  syn::Item::Use(orig_use) => backend_use(orig_use),
+  _ => abort_call_site!("Apply #[backend] to functions, structs, and use statements."),
  }
+}
+
+fn backend_use(orig_use: syn::ItemUse) -> proc_macro::TokenStream {
+ proc_macro::TokenStream::from(quote! {
+  #[cfg(not(target_arch = "wasm32"))]
+  #orig_use
+ })
 }
 
 fn backend_struct(orig_struct: syn::ItemStruct) -> proc_macro::TokenStream {
