@@ -8,59 +8,31 @@ mod extract_result;
 use proc_macro_error::{abort_call_site, proc_macro_error};
 use quote::{format_ident, quote};
 
-/// Apply this to a function to make it available on the server only.
+/// Apply this to an item to make it available on the server only.
 #[proc_macro_attribute]
 #[proc_macro_error]
 pub fn server_only(
  _args: proc_macro::TokenStream,
  input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
- let orig_fn = syn::parse_macro_input!(input as syn::ItemFn);
-
- let maybe_inject_once = if orig_fn.sig.ident == "main" {
-  quote! {
-   #[cfg(target_arch = "wasm32")]
-   #[allow(non_camel_case_types)]
-   #[wasm_bindgen]
-   pub struct wasm_only;
-
-   #[cfg(target_arch = "wasm32")]
-   fn main() {}
-  }
- } else {
-  quote! {}
- };
-
+ let orig_item = syn::parse_macro_input!(input as syn::Item);
  proc_macro::TokenStream::from(quote! {
-  #[allow(unused_imports)]
-  use wasm_bindgen::prelude::*;
-
-  #maybe_inject_once
-
   #[cfg(not(target_arch = "wasm32"))]
-  #[allow(dead_code)]
-  #orig_fn
+  #orig_item
  })
 }
 
-/// Apply this to a `pub` `fn` to make it available to the WASM module only. Apples `#[wasm_bindgen]` underneath.
+/// Apply this to an item to make it available on wasm only.
 #[proc_macro_attribute]
 #[proc_macro_error]
 pub fn wasm_only(
  _args: proc_macro::TokenStream,
  input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
- let orig_fn = syn::parse_macro_input!(input as syn::ItemFn);
+ let orig_item = syn::parse_macro_input!(input as syn::Item);
  proc_macro::TokenStream::from(quote! {
-  #[allow(unused_imports)]
-  use wasm_bindgen::prelude::*;
-
   #[cfg(target_arch = "wasm32")]
-  #[wasm_bindgen(js_class = wasm_only)]
-  impl wasm_only {
-   #[wasm_bindgen]
-   #orig_fn
-  }
+  #orig_item
  })
 }
 
@@ -78,9 +50,16 @@ fn backend_item(orig_item: syn::Item) -> proc_macro2::TokenStream {
  match orig_item {
   syn::Item::Fn(orig) => backend_fn(orig),
   syn::Item::Struct(orig) => backend_struct(orig),
-  syn::Item::Use(orig) => backend_use(orig),
   syn::Item::Mod(orig) => backend_mod(orig),
-  _ => abort_call_site!("Apply #[backend] to `fn`, `struct`, `use`, or `mod`."),
+  _ => abort_call_site!("Apply #[backend] to `fn`, `struct`, or `mod`."),
+ }
+}
+
+fn backend_mod_item(orig_item: syn::Item) -> proc_macro2::TokenStream {
+ match orig_item {
+  syn::Item::Fn(orig) => backend_fn(orig),
+  syn::Item::Struct(orig) => backend_struct(orig),
+  orig => quote! { #orig },
  }
 }
 
@@ -90,17 +69,10 @@ fn backend_mod(orig_mod: syn::ItemMod) -> proc_macro2::TokenStream {
   .unwrap_or_else(|| abort_call_site!("Apply #[backend] to a `mod` with a body."))
   .1
   .into_iter()
-  .map(backend_item)
+  .map(backend_mod_item)
   .collect();
 
  quote! { #(#items)* }
-}
-
-fn backend_use(orig_use: syn::ItemUse) -> proc_macro2::TokenStream {
- quote! {
-  #[cfg(not(target_arch = "wasm32"))]
-  #orig_use
- }
 }
 
 fn backend_struct(orig_struct: syn::ItemStruct) -> proc_macro2::TokenStream {

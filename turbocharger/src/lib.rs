@@ -1,7 +1,7 @@
 #![forbid(unsafe_code)]
 #![doc = include_str!("../README.md")]
 
-pub use turbocharger_impl::{backend, server_only, wasm_only};
+pub use turbocharger_impl::{backend, server_only};
 
 #[cfg(not(target_arch = "wasm32"))]
 #[doc(hidden)]
