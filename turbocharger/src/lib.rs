@@ -1,27 +1,22 @@
 #![forbid(unsafe_code)]
 #![doc = include_str!("../README.md")]
 
-pub use turbocharger_impl::{backend, server_only};
-
-#[cfg(not(target_arch = "wasm32"))]
-#[doc(hidden)]
-pub use async_trait::async_trait;
-#[doc(hidden)]
-pub use bincode;
 use futures::{SinkExt, StreamExt};
-#[cfg(target_arch = "wasm32")]
-pub use js_sys;
-#[doc(hidden)]
-pub use serde;
-#[cfg(target_arch = "wasm32")]
-use std::{cell::RefCell, collections::HashMap};
-#[cfg(not(target_arch = "wasm32"))]
-#[doc(hidden)]
-pub use typetag;
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen::prelude::*;
 
-#[cfg(not(target_arch = "wasm32"))]
+pub use turbocharger_impl::{backend, server_only, wasm_only};
+
+#[doc(hidden)]
+pub use {bincode, serde};
+
+#[server_only]
+#[doc(hidden)]
+pub use {async_trait::async_trait, typetag};
+
+#[cfg(target_arch = "wasm32")]
+#[doc(hidden)]
+pub use js_sys;
+
+#[server_only]
 #[doc(hidden)]
 #[typetag::serde]
 #[async_trait]
@@ -29,40 +24,40 @@ pub trait RPC: Send + Sync {
  async fn execute(&self) -> Vec<u8>;
 }
 
-#[cfg(target_arch = "wasm32")]
+#[wasm_only]
 #[derive(Default)]
 struct Globals {
  channel_tx: Option<futures::channel::mpsc::UnboundedSender<Vec<u8>>>,
  next_txid: i64,
- senders: HashMap<i64, futures::channel::mpsc::UnboundedSender<Vec<u8>>>,
+ senders: std::collections::HashMap<i64, futures::channel::mpsc::UnboundedSender<Vec<u8>>>,
 }
 
-#[cfg(target_arch = "wasm32")]
+#[wasm_only]
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct Response {
  pub txid: i64,
  pub resp: Vec<u8>,
 }
 
-#[cfg(target_arch = "wasm32")]
+#[wasm_only]
 thread_local! {
- static G: RefCell<Globals> = RefCell::new(Globals::default());
+ static G: std::cell::RefCell<Globals> = std::cell::RefCell::new(Globals::default());
 }
 
-#[cfg(target_arch = "wasm32")]
+#[wasm_only]
 #[macro_export]
 macro_rules! console_log {
   ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
  }
 
-#[cfg(target_arch = "wasm32")]
+#[wasm_only]
 #[wasm_bindgen]
 extern "C" {
  #[wasm_bindgen(js_namespace = console)]
  fn log(s: &str);
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[server_only]
 pub fn warp_routes<A: 'static + rust_embed::RustEmbed>(
  asset: A,
 ) -> warp::filters::BoxedFilter<(impl warp::Reply,)> {
@@ -70,7 +65,7 @@ pub fn warp_routes<A: 'static + rust_embed::RustEmbed>(
  warp_socket_route().or(warp_rust_embed_route(asset)).boxed()
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[server_only]
 pub fn warp_socket_route() -> warp::filters::BoxedFilter<(impl warp::Reply,)> {
  use warp::Filter;
  warp::path("turbocharger_socket")
@@ -79,7 +74,7 @@ pub fn warp_socket_route() -> warp::filters::BoxedFilter<(impl warp::Reply,)> {
   .boxed()
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[server_only]
 pub fn warp_rust_embed_route<A: rust_embed::RustEmbed>(
  _asset: A,
 ) -> warp::filters::BoxedFilter<(impl warp::Reply,)> {
@@ -105,7 +100,7 @@ pub fn warp_rust_embed_route<A: rust_embed::RustEmbed>(
   .boxed()
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[server_only]
 async fn accept_connection(ws: warp::ws::WebSocket) {
  use futures::TryFutureExt;
 
@@ -148,14 +143,14 @@ async fn accept_connection(ws: warp::ws::WebSocket) {
  log::warn!("accept_connection completed")
 }
 
-#[cfg(target_arch = "wasm32")]
+#[wasm_only]
 pub struct _Transaction {
  pub txid: i64,
  channel_tx: futures::channel::mpsc::UnboundedSender<Vec<u8>>,
  resp_rx: futures::channel::mpsc::UnboundedReceiver<Vec<u8>>,
 }
 
-#[cfg(target_arch = "wasm32")]
+#[wasm_only]
 impl _Transaction {
  pub fn new() -> Self {
   let (resp_tx, resp_rx) = futures::channel::mpsc::unbounded();
@@ -177,14 +172,14 @@ impl _Transaction {
  }
 }
 
-#[cfg(target_arch = "wasm32")]
+#[wasm_only]
 impl Default for _Transaction {
  fn default() -> Self {
   Self::new()
  }
 }
 
-#[cfg(target_arch = "wasm32")]
+#[wasm_only]
 #[wasm_bindgen(start)]
 pub async fn start() -> Result<(), JsValue> {
  console_error_panic_hook::set_once();
@@ -195,17 +190,17 @@ pub async fn start() -> Result<(), JsValue> {
   g.borrow_mut().channel_tx = Some(channel_tx);
  });
 
- let location = web_sys::window().unwrap().location();
-
- let protocol = match location.protocol().unwrap().as_str() {
-  "https:" => "wss:",
-  _ => "ws:",
- };
-
  #[cfg(turbocharger_test)]
  let socket_url = "ws://localhost:8080/turbocharger_socket";
  #[cfg(not(turbocharger_test))]
- let socket_url = format!("{}//{}/turbocharger_socket", protocol, location.host().unwrap());
+ let socket_url = {
+  let location = web_sys::window().unwrap().location();
+  let protocol = match location.protocol().unwrap().as_str() {
+   "https:" => "wss:",
+   _ => "ws:",
+  };
+  format!("{}//{}/turbocharger_socket", protocol, location.host().unwrap())
+ };
 
  console_log!("connecting to {}", socket_url);
 

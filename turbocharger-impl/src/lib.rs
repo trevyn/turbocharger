@@ -32,6 +32,10 @@ pub fn wasm_only(
  let orig_item = syn::parse_macro_input!(input as syn::Item);
  proc_macro::TokenStream::from(quote! {
   #[cfg(target_arch = "wasm32")]
+  #[allow(unused_imports)]
+  use wasm_bindgen::prelude::*;
+
+  #[cfg(target_arch = "wasm32")]
   #orig_item
  })
 }
