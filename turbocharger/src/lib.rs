@@ -2,6 +2,8 @@
 #![doc = include_str!("../README.md")]
 
 use futures::{SinkExt, StreamExt};
+use once_cell::sync::Lazy;
+use std::sync::Mutex;
 
 pub use turbocharger_impl::{backend, server_only, wasm_only};
 
@@ -24,7 +26,6 @@ pub trait RPC: Send + Sync {
  async fn execute(&self) -> Vec<u8>;
 }
 
-#[wasm_only]
 #[derive(Default)]
 struct Globals {
  channel_tx: Option<futures::channel::mpsc::UnboundedSender<Vec<u8>>>,
@@ -32,17 +33,13 @@ struct Globals {
  senders: std::collections::HashMap<i64, futures::channel::mpsc::UnboundedSender<Vec<u8>>>,
 }
 
-#[wasm_only]
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct Response {
  pub txid: i64,
  pub resp: Vec<u8>,
 }
 
-#[wasm_only]
-thread_local! {
- static G: std::cell::RefCell<Globals> = std::cell::RefCell::new(Globals::default());
-}
+static G: Lazy<Mutex<Globals>> = Lazy::new(|| Mutex::new(Globals::default()));
 
 #[wasm_only]
 #[macro_export]
@@ -143,27 +140,23 @@ async fn accept_connection(ws: warp::ws::WebSocket) {
  log::warn!("accept_connection completed")
 }
 
-#[wasm_only]
 pub struct _Transaction {
  pub txid: i64,
  channel_tx: futures::channel::mpsc::UnboundedSender<Vec<u8>>,
  resp_rx: futures::channel::mpsc::UnboundedReceiver<Vec<u8>>,
 }
 
-#[wasm_only]
 impl _Transaction {
  pub fn new() -> Self {
   let (resp_tx, resp_rx) = futures::channel::mpsc::unbounded();
 
-  let (channel_tx, txid) = G.with(|g| -> (_, _) {
-   let mut g = g.borrow_mut();
-   let txid = g.next_txid;
-   g.senders.insert(txid, resp_tx);
-   g.next_txid += 1;
-   (g.channel_tx.clone().unwrap(), txid)
-  });
+  let mut g = G.lock().unwrap();
 
-  _Transaction { txid, channel_tx, resp_rx }
+  let txid = g.next_txid;
+  g.senders.insert(txid, resp_tx);
+  g.next_txid += 1;
+
+  _Transaction { txid, channel_tx: g.channel_tx.clone().unwrap(), resp_rx }
  }
 
  pub async fn run(mut self, req: Vec<u8>) -> Vec<u8> {
@@ -172,7 +165,6 @@ impl _Transaction {
  }
 }
 
-#[wasm_only]
 impl Default for _Transaction {
  fn default() -> Self {
   Self::new()
@@ -185,10 +177,7 @@ pub async fn start() -> Result<(), JsValue> {
  console_error_panic_hook::set_once();
 
  let (channel_tx, mut channel_rx) = futures::channel::mpsc::unbounded();
-
- G.with(|g| {
-  g.borrow_mut().channel_tx = Some(channel_tx);
- });
+ G.lock().unwrap().channel_tx = Some(channel_tx);
 
  #[cfg(turbocharger_test)]
  let socket_url = "ws://localhost:8080/turbocharger_socket";
@@ -214,7 +203,7 @@ pub async fn start() -> Result<(), JsValue> {
   while let Some(msg) = ws_rx.next().await {
    if let ws_stream_wasm::WsMessage::Binary(msg) = msg {
     let txid = i64::from_le_bytes(msg[0..8].try_into().unwrap());
-    let mut sender = G.with(|g| -> _ { g.borrow().senders.get(&txid).unwrap().clone() });
+    let mut sender = G.lock().unwrap().senders.get(&txid).unwrap().clone();
     sender.send(msg).await.unwrap();
    }
   }
