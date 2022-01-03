@@ -1,4 +1,4 @@
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
 #![doc = include_str!("../README.md")]
 
 use futures::{SinkExt, StreamExt};
@@ -44,7 +44,11 @@ static G: Lazy<Mutex<Globals>> = Lazy::new(|| Mutex::new(Globals::default()));
 #[wasm_only]
 #[macro_export]
 macro_rules! console_log {
-  ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
+  ($($t:tt)*) => (
+   #[allow(unsafe_code)]
+   #[allow(unused_unsafe)]
+   unsafe { log(&format_args!($($t)*).to_string()) }
+ )
  }
 
 #[wasm_only]
