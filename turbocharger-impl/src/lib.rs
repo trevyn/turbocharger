@@ -136,19 +136,24 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
  };
 
  let tuple_indexes = (0..orig_fn_params.len()).map(syn::Index::from);
- let orig_fn_param_names = orig_fn_params.iter().map(|p| match p {
-  syn::FnArg::Receiver(_) => abort_call_site!("I don't know what to do with `self` here."),
-  syn::FnArg::Typed(pattype) => match *pattype.pat.clone() {
-   syn::Pat::Ident(i) => i.ident,
-   _ => abort_call_site!("Parameter name is not Ident"),
-  },
- });
- let orig_fn_param_names_cloned = orig_fn_param_names.clone();
- let orig_fn_param_tys = orig_fn_params.iter().map(|p| match p {
-  syn::FnArg::Receiver(_) => abort_call_site!("I don't know what to do with `self` here."),
-  syn::FnArg::Typed(pattype) => &pattype.ty,
- });
- let orig_fn_param_tys_cloned = orig_fn_param_tys.clone();
+ let orig_fn_param_names: Vec<_> = orig_fn_params
+  .iter()
+  .map(|p| match p {
+   syn::FnArg::Receiver(_) => abort_call_site!("I don't know what to do with `self` here."),
+   syn::FnArg::Typed(pattype) => match *pattype.pat.clone() {
+    syn::Pat::Ident(i) => i.ident,
+    _ => abort_call_site!("Parameter name is not Ident"),
+   },
+  })
+  .collect();
+
+ let orig_fn_param_tys: Vec<_> = orig_fn_params
+  .iter()
+  .map(|p| match p {
+   syn::FnArg::Receiver(_) => abort_call_site!("I don't know what to do with `self` here."),
+   syn::FnArg::Typed(pattype) => &pattype.ty,
+  })
+  .collect();
 
  let orig_fn_params_maybe_comma = if orig_fn_params.is_empty() {
   quote! {}
@@ -161,6 +166,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
  let req = format_ident!("_TURBOCHARGER_REQ_{}", orig_fn_ident);
  let resp = format_ident!("_TURBOCHARGER_RESP_{}", orig_fn_ident);
  let impl_fn_ident = format_ident!("_TURBOCHARGER_IMPL_{}", orig_fn_ident);
+ let remote_fn_ident = format_ident!("remote_{}", orig_fn_ident);
 
  quote! {
   #[cfg(target_arch = "wasm32")]
@@ -201,13 +207,31 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
     typetag_const_one: 1,
     dispatch_name: #orig_fn_string,
     txid: tx.txid,
-    params: (#( #orig_fn_param_names_cloned ),* #orig_fn_params_maybe_comma),
+    params: (#( #orig_fn_param_names ),* #orig_fn_params_maybe_comma),
    })
    .unwrap();
    let response = tx.run(req).await;
    let #resp { result, .. } =
     ::turbocharger::bincode::deserialize(&response).unwrap();
    result
+  }
+
+  #[cfg(not(target_arch = "wasm32"))]
+  #[allow(non_snake_case)]
+  async fn #remote_fn_ident(peer: &str, #orig_fn_params) {
+   dbg!(peer);
+
+   let req = ::turbocharger::bincode::serialize(&#req {
+    typetag_const_one: 1,
+    dispatch_name: #orig_fn_string,
+    txid: 0,
+    params: (#( #orig_fn_param_names ),* #orig_fn_params_maybe_comma),
+   })
+   .unwrap();
+
+   let socket = ::turbocharger::_UDP_SOCKET.lock().unwrap().clone().unwrap();
+
+   socket.send_to(&req, peer).await.unwrap();
   }
 
   #[allow(non_camel_case_types)]
@@ -225,7 +249,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
   #[serde(crate = "::turbocharger::serde")]
   struct #dispatch {
    txid: i64,
-   params: (#( #orig_fn_param_tys_cloned ),* #orig_fn_params_maybe_comma),
+   params: (#( #orig_fn_param_tys ),* #orig_fn_params_maybe_comma),
   }
 
   #[allow(non_camel_case_types)]

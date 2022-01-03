@@ -41,6 +41,10 @@ pub struct Response {
 
 static G: Lazy<Mutex<Globals>> = Lazy::new(|| Mutex::new(Globals::default()));
 
+#[cfg(not(target_arch = "wasm32"))]
+pub static _UDP_SOCKET: Lazy<Mutex<Option<std::sync::Arc<tokio::net::UdpSocket>>>> =
+ Lazy::new(|| Mutex::new(None));
+
 #[wasm_only]
 #[macro_export]
 macro_rules! console_log {
@@ -172,6 +176,23 @@ impl _Transaction {
 impl Default for _Transaction {
  fn default() -> Self {
   Self::new()
+ }
+}
+
+/// Start a new Turbocharger UDP server. Runs indefinitely.
+#[server_only]
+pub async fn run_udp_server(port: u16) -> Result<(), Box<dyn std::error::Error>> {
+ let mut buf = [0; 1500];
+ let socket =
+  std::sync::Arc::new(tokio::net::UdpSocket::bind(format!("0.0.0.0:{}", port)).await.unwrap());
+
+ eprintln!("Listening on: {}", socket.local_addr()?);
+
+ *_UDP_SOCKET.lock().unwrap() = Some(socket.clone());
+
+ loop {
+  let (size, peer) = socket.recv_from(&mut buf).await?;
+  eprintln!("received {} bytes from {}", size, peer);
  }
 }
 
