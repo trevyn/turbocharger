@@ -163,6 +163,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
  let impl_fn_ident = format_ident!("_TURBOCHARGER_IMPL_{}", orig_fn_ident);
 
  quote! {
+  #[cfg(target_arch = "wasm32")]
   #[allow(unused_imports)]
   use wasm_bindgen::prelude::*;
 
