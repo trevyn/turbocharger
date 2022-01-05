@@ -220,11 +220,11 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
   #[allow(non_snake_case)]
   async fn #remote_fn_ident(peer: &str, #orig_fn_params) {
    dbg!(peer);
-
+   let tx = ::turbocharger::_Transaction::new();
    let req = ::turbocharger::bincode::serialize(&#req {
     typetag_const_one: 1,
     dispatch_name: #orig_fn_string,
-    txid: 0,
+    txid: tx.txid,
     params: (#( #orig_fn_param_names ),* #orig_fn_params_maybe_comma),
    })
    .unwrap();

@@ -150,7 +150,6 @@ async fn accept_connection(ws: warp::ws::WebSocket) {
 
 pub struct _Transaction {
  pub txid: i64,
- channel_tx: futures::channel::mpsc::UnboundedSender<Vec<u8>>,
  resp_rx: futures::channel::mpsc::UnboundedReceiver<Vec<u8>>,
 }
 
@@ -164,11 +163,12 @@ impl _Transaction {
   g.senders.insert(txid, resp_tx);
   g.next_txid += 1;
 
-  _Transaction { txid, channel_tx: g.channel_tx.clone().unwrap(), resp_rx }
+  _Transaction { txid, resp_rx }
  }
 
  pub async fn run(mut self, req: Vec<u8>) -> Vec<u8> {
-  self.channel_tx.send(req).await.unwrap();
+  let mut channel = G.lock().unwrap().channel_tx.clone().unwrap();
+  channel.send(req).await.unwrap();
   self.resp_rx.next().await.unwrap()
  }
 }
