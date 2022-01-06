@@ -1,4 +1,5 @@
 {
+ // "rust-analyzer.cargo.target": "wasm32-unknown-unknown",
+ "rust-analyzer.checkOnSave.command": "clippy",
  "css.lint.unknownAtRules": "ignore"
- // "rust-analyzer.cargo.target": "wasm32-unknown-unknown"
 }
