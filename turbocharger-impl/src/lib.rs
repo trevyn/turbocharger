@@ -8,7 +8,7 @@ mod extract_result;
 use proc_macro_error::{abort_call_site, proc_macro_error};
 use quote::{format_ident, quote};
 
-/// Apply this to an item to make it available on the server only.
+/// Apply this to an item to make it available on the server target only.
 #[proc_macro_attribute]
 #[proc_macro_error]
 pub fn server_only(
@@ -22,7 +22,7 @@ pub fn server_only(
  })
 }
 
-/// Apply this to an item to make it available on wasm only.
+/// Apply this to an item to make it available on the wasm target only.
 #[proc_macro_attribute]
 #[proc_macro_error]
 pub fn wasm_only(
@@ -40,7 +40,7 @@ pub fn wasm_only(
  })
 }
 
-/// Apply this to an `async fn` to make it available (over the network) to the JS frontend.
+/// Apply this to a `pub async fn` to make it available (over the network) to the JS frontend.
 #[proc_macro_attribute]
 #[proc_macro_error]
 pub fn backend(

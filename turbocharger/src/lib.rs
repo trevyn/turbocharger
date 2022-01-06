@@ -33,6 +33,7 @@ struct Globals {
  senders: std::collections::HashMap<i64, futures::channel::mpsc::UnboundedSender<Vec<u8>>>,
 }
 
+#[doc(hidden)]
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct Response {
  pub txid: i64,
@@ -42,6 +43,7 @@ pub struct Response {
 static G: Lazy<Mutex<Globals>> = Lazy::new(|| Mutex::new(Globals::default()));
 
 #[cfg(not(target_arch = "wasm32"))]
+#[doc(hidden)]
 pub static _UDP_SOCKET: Lazy<Mutex<Option<std::sync::Arc<tokio::net::UdpSocket>>>> =
  Lazy::new(|| Mutex::new(None));
 
@@ -62,6 +64,7 @@ extern "C" {
  fn log(s: &str);
 }
 
+/// Returns a combined `warp` route for serving both the Turbocharger socket and the static frontend files.
 #[server_only]
 pub fn warp_routes<A: 'static + rust_embed::RustEmbed>(
  asset: A,
@@ -70,6 +73,7 @@ pub fn warp_routes<A: 'static + rust_embed::RustEmbed>(
  warp_socket_route().or(warp_rust_embed_route(asset)).boxed()
 }
 
+/// Returns a `warp` route for serving the Turbocharger socket.
 #[server_only]
 pub fn warp_socket_route() -> warp::filters::BoxedFilter<(impl warp::Reply,)> {
  use warp::Filter;
@@ -79,6 +83,7 @@ pub fn warp_socket_route() -> warp::filters::BoxedFilter<(impl warp::Reply,)> {
   .boxed()
 }
 
+/// Returns a `warp` route for serving static frontend files sourced from the `rust_embed` crate.
 #[server_only]
 pub fn warp_rust_embed_route<A: rust_embed::RustEmbed>(
  _asset: A,
@@ -148,6 +153,7 @@ async fn accept_connection(ws: warp::ws::WebSocket) {
  log::warn!("accept_connection completed")
 }
 
+#[doc(hidden)]
 pub struct _Transaction {
  pub txid: i64,
  resp_rx: futures::channel::mpsc::UnboundedReceiver<Vec<u8>>,
