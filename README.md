@@ -12,7 +12,7 @@ Makes a Rust _backend_ function, e.g.:
 
 ```rust
 #[turbocharger::backend]
-async fn get_person(id: i64) -> Person {
+pub async fn get_person(id: i64) -> Person {
  // ... write any async backend code here; ...
  // ... query a remote database, API, etc. ...
  Person { name: "Bob", age: 21 }
@@ -43,33 +43,34 @@ Multiple async requests can be simultaneously in-flight over a single multiplexe
 
 See [https://github.com/trevyn/turbocharger-template](https://github.com/trevyn/turbocharger-template) for a full turnkey template repository.
 
-### `main.rs`
+### `backend.rs`
 
 ```rust
-use turbocharger::{backend, server_only};
-use wasm_bindgen::prelude::*;
-
-#[cfg(not(target_arch = "wasm32"))]
-use turbosql::{select, Turbosql};
+use turbocharger::backend;
 
 #[backend]
-#[cfg_attr(not(target_arch = "wasm32"), derive(Turbosql))]
+#[derive(turbosql::Turbosql)]
 pub struct Person {
  pub rowid: Option<i64>,
  pub name: Option<String>,
 }
 
 #[backend]
-async fn insert_person(p: Person) -> Result<i64, turbosql::Error> {
+pub async fn insert_person(p: Person) -> Result<i64, turbosql::Error> {
  p.insert() // returns rowid
 }
 
 #[backend]
-async fn get_person(rowid: i64) -> Result<Person, turbosql::Error> {
- select!(Person "WHERE rowid = ?", rowid)
+pub async fn get_person(rowid: i64) -> Result<Person, turbosql::Error> {
+ turbosql::select!(Person "WHERE rowid = ?", rowid)
 }
+```
 
-#[server_only]
+### `server.rs`
+
+```rust
+mod backend;
+
 #[tokio::main]
 async fn main() {
  #[derive(rust_embed::RustEmbed)]
@@ -79,6 +80,7 @@ async fn main() {
  eprintln!("Serving on http://127.0.0.1:8080");
  warp::serve(turbocharger::warp_routes(Frontend)).run(([127, 0, 0, 1], 8080)).await;
 }
+
 ```
 
 ### `index.js`
@@ -96,13 +98,15 @@ import turbocharger_init, * as backend from "./turbocharger_generated";
 
 ## Usage
 
-Your `main.rs` file is the entry point for both the server `bin` target and a `wasm-bindgen` `lib` target. The `#[backend]` macro outputs three functions:
+Start a new project using [https://github.com/trevyn/turbocharger-template](https://github.com/trevyn/turbocharger-template) for the full project layout and build scripts.
+
+Your `backend.rs` module is included in both the server-side `bin` target in `server.rs` and a `wasm-bindgen` `lib` target in `wasm.rs`. The `#[backend]` macro outputs three functions:
 
 - Your function, unchanged, for the server `bin` target; you can call it directly from other server code if you wish.
 - An internal function for the server `bin` target providing the RPC dispatch glue.
 - A `#[wasm_bindgen]` function for the frontend `lib` target that makes the RPC call and delivers the response.
 
-Because the project is compiled to both `wasm32-unknown-unknown` and the host triple, all functions and structs in `main.rs` should be annotated with one of `#[backend]`, `#[server_only]`, or `#[wasm_only]`.
+Note that `backend.rs` is compiled to both `wasm32-unknown-unknown` and the host triple, and that you can annotate functions and structs in `backend.rs` with one of `#[backend]`, `#[server_only]`, or `#[wasm_only]`.
 
 ## Error Handling
 
@@ -114,19 +118,13 @@ Currently, the server side is batteries-included with `warp`, but this could be 
 
 ## WASM-only functions
 
-You can also easily add standard `#[wasm-bindgen]`-style Rust functions to the WASM module, accessible from the frontend only:
+You can also easily add standard `#[wasm-bindgen]`-style Rust functions to `wasm.rs`, accessible from the frontend only:
 
 ```rust
-#[turbocharger::wasm_only]
-async fn get_wasm_greeting() -> String {
+#[wasm-bindgen]
+pub async fn get_wasm_greeting() -> String {
  "Hello from WASM".to_string()
 }
 ```
-
-## To Do / Future Directions
-
-- Better WebSocket status management / reconnect
-- Streaming responses with `futures::stream`
-- Many things [`tarpc`](https://github.com/google/tarpc) does, particularly around timeouts and cancellation.
 
 ### License: MIT OR Apache-2.0 OR CC0-1.0 (public domain)
