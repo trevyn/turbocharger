@@ -214,7 +214,8 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
     params: (#( #orig_fn_param_names ),* #orig_fn_params_maybe_comma),
    })
    .unwrap();
-   let response = tx.run(req).await;
+   tx.send_ws(req).await;
+   let response = tx.resp().await;
    let #resp { result, .. } =
     ::turbocharger::bincode::deserialize(&response).unwrap();
    result
@@ -222,7 +223,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
 
   #[cfg(not(target_arch = "wasm32"))]
   #[allow(non_snake_case)]
-  async fn #remote_fn_ident(peer: &str, #orig_fn_params) {
+  async fn #remote_fn_ident(peer: &str, #orig_fn_params) -> #serialize_ret_ty {
    let tx = ::turbocharger::_Transaction::new();
    let req = ::turbocharger::bincode::serialize(&#req {
     typetag_const_one: 1,
@@ -235,6 +236,11 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
    let socket = ::turbocharger::_UDP_SOCKET.lock().unwrap().clone().unwrap();
 
    socket.send_to(&req, peer).await.unwrap();
+
+   let response = tx.resp().await;
+   let #resp { result, .. } =
+    ::turbocharger::bincode::deserialize(&response).unwrap();
+   result
   }
 
   #[allow(non_camel_case_types)]

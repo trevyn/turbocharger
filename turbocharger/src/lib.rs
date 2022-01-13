@@ -177,9 +177,12 @@ impl _Transaction {
   _Transaction { txid, resp_rx }
  }
 
- pub async fn run(mut self, req: Vec<u8>) -> Vec<u8> {
+ pub async fn send_ws(&self, req: Vec<u8>) {
   let mut channel = G.lock().unwrap().channel_tx.clone().unwrap();
   channel.send(req).await.unwrap();
+ }
+
+ pub async fn resp(mut self) -> Vec<u8> {
   self.resp_rx.next().await.unwrap()
  }
 }
@@ -207,14 +210,24 @@ pub async fn run_udp_server(port: u16) -> Result<(), Box<dyn std::error::Error>>
   if size < 8 {
    continue;
   };
+  let first_word = i64::from_le_bytes(buf[0..8].try_into().unwrap());
   let msg = buf[0..size].to_vec();
-  dbg!(&msg);
-  let send_socket = socket.clone();
-  tokio::task::spawn(async move {
-   let target_func: Box<dyn RPC> = bincode::deserialize(&msg).unwrap();
-   let response = target_func.execute().await;
-   send_socket.send_to(&response, peer).await.unwrap();
-  });
+  match first_word {
+   1 => {
+    // typetagged request
+    let send_socket = socket.clone();
+    tokio::task::spawn(async move {
+     let target_func: Box<dyn RPC> = bincode::deserialize(&msg).unwrap();
+     let response = target_func.execute().await;
+     send_socket.send_to(&response, peer).await.unwrap();
+    });
+   }
+   txid => {
+    // response txid
+    let mut sender = G.lock().unwrap().senders.get(&txid).unwrap().clone();
+    sender.send(msg).await.unwrap();
+   }
+  }
  }
 }
 
