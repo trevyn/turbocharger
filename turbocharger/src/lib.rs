@@ -200,13 +200,13 @@ pub async fn run_udp_server(port: u16) -> Result<(), Box<dyn std::error::Error>>
  let socket =
   std::sync::Arc::new(tokio::net::UdpSocket::bind(format!("0.0.0.0:{}", port)).await.unwrap());
 
- eprintln!("Listening on: {}", socket.local_addr()?);
+ log::debug!("Listening on: {}", socket.local_addr()?);
 
  *_UDP_SOCKET.lock().unwrap() = Some(socket.clone());
 
  loop {
   let (size, peer) = socket.recv_from(&mut buf).await?;
-  eprintln!("received {} bytes from {}", size, peer);
+  log::debug!("received {} bytes from {}", size, peer);
   if size < 8 {
    continue;
   };
