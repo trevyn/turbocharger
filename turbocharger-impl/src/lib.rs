@@ -5,6 +5,7 @@
 #![forbid(unsafe_code)]
 
 mod extract_result;
+mod extract_stream;
 use proc_macro_error::{abort_call_site, proc_macro_error};
 use quote::{format_ident, quote};
 
@@ -113,6 +114,9 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
   syn::ReturnType::Type(_, path) => Some(*path),
  };
  let result_inner_ty = orig_fn_ret_ty.clone().map(extract_result::inner_ty).flatten();
+ // let stream_inner_ty = orig_fn_ret_ty.clone().map(extract_stream::inner_ty).flatten();
+ // dbg!(stream_inner_ty);
+
  let orig_fn_ret_ty = match orig_fn_ret_ty {
   Some(ty) => quote! { #ty },
   None => quote! { () },
