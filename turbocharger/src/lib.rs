@@ -26,11 +26,16 @@ pub trait RPC: Send + Sync {
  async fn execute(&self) -> Vec<u8>;
 }
 
-#[derive(Default)]
 struct Globals {
  channel_tx: Option<futures::channel::mpsc::UnboundedSender<Vec<u8>>>,
  next_txid: i64,
  senders: std::collections::HashMap<i64, futures::channel::mpsc::UnboundedSender<Vec<u8>>>,
+}
+
+impl Default for Globals {
+ fn default() -> Self {
+  Self { channel_tx: None, next_txid: 256, senders: Default::default() }
+ }
 }
 
 #[doc(hidden)]
@@ -199,6 +204,17 @@ pub async fn run_udp_server(port: u16) -> Result<(), Box<dyn std::error::Error>>
  loop {
   let (size, peer) = socket.recv_from(&mut buf).await?;
   eprintln!("received {} bytes from {}", size, peer);
+  if size < 8 {
+   continue;
+  };
+  let msg = buf[0..size].to_vec();
+  dbg!(&msg);
+  let send_socket = socket.clone();
+  tokio::task::spawn(async move {
+   let target_func: Box<dyn RPC> = bincode::deserialize(&msg).unwrap();
+   let response = target_func.execute().await;
+   send_socket.send_to(&response, peer).await.unwrap();
+  });
  }
 }
 

@@ -223,7 +223,6 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
   #[cfg(not(target_arch = "wasm32"))]
   #[allow(non_snake_case)]
   async fn #remote_fn_ident(peer: &str, #orig_fn_params) {
-   dbg!(peer);
    let tx = ::turbocharger::_Transaction::new();
    let req = ::turbocharger::bincode::serialize(&#req {
     typetag_const_one: 1,
