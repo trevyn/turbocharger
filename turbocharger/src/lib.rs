@@ -193,42 +193,43 @@ impl Default for _Transaction {
  }
 }
 
-/// Start a new Turbocharger UDP server. Runs indefinitely.
+/// Spawns a new Turbocharger UDP server. Future resolves when the server is ready to respond to requests.
 #[server_only]
-pub async fn run_udp_server(port: u16) -> Result<(), Box<dyn std::error::Error>> {
- let mut buf = [0; 1500];
- let socket =
-  std::sync::Arc::new(tokio::net::UdpSocket::bind(format!("0.0.0.0:{}", port)).await.unwrap());
-
+pub async fn spawn_udp_server(port: u16) -> Result<(), Box<dyn std::error::Error>> {
+ let socket = std::sync::Arc::new(tokio::net::UdpSocket::bind(format!("0.0.0.0:{}", port)).await?);
  log::debug!("Listening on: {}", socket.local_addr()?);
+ *_UDP_SOCKET.lock()? = Some(socket.clone());
 
- *_UDP_SOCKET.lock().unwrap() = Some(socket.clone());
-
- loop {
-  let (size, peer) = socket.recv_from(&mut buf).await?;
-  log::debug!("received {} bytes from {}", size, peer);
-  if size < 8 {
-   continue;
-  };
-  let first_word = i64::from_le_bytes(buf[0..8].try_into().unwrap());
-  let msg = buf[0..size].to_vec();
-  match first_word {
-   1 => {
-    // typetagged request
-    let send_socket = socket.clone();
-    tokio::task::spawn(async move {
-     let target_func: Box<dyn RPC> = bincode::deserialize(&msg).unwrap();
-     let response = target_func.execute().await;
-     send_socket.send_to(&response, peer).await.unwrap();
-    });
-   }
-   txid => {
-    // response txid
-    let mut sender = G.lock().unwrap().senders.get(&txid).unwrap().clone();
-    sender.send(msg).await.unwrap();
+ tokio::spawn(async move {
+  loop {
+   let mut buf = [0; 1500];
+   let (size, peer) = socket.recv_from(&mut buf).await.unwrap();
+   log::debug!("received {} bytes from {}", size, peer);
+   if size < 8 {
+    continue;
+   };
+   let first_word = i64::from_le_bytes(buf[0..8].try_into().unwrap());
+   let msg = buf[0..size].to_vec();
+   match first_word {
+    1 => {
+     // typetagged request
+     let send_socket = socket.clone();
+     tokio::task::spawn(async move {
+      let target_func: Box<dyn RPC> = bincode::deserialize(&msg).unwrap();
+      let response = target_func.execute().await;
+      send_socket.send_to(&response, peer).await.unwrap();
+     });
+    }
+    txid => {
+     // response txid
+     let mut sender = G.lock().unwrap().senders.get(&txid).unwrap().clone();
+     sender.send(msg).await.unwrap();
+    }
    }
   }
- }
+ });
+
+ Ok(())
 }
 
 #[wasm_only]
