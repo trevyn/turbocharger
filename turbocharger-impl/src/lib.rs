@@ -114,7 +114,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
   syn::ReturnType::Type(_, path) => Some(*path),
  };
  let result_inner_ty = orig_fn_ret_ty.clone().map(extract_result::inner_ty).flatten();
- // let stream_inner_ty = orig_fn_ret_ty.clone().map(extract_stream::inner_ty).flatten();
+ let _stream_inner_ty = orig_fn_ret_ty.clone().map(extract_stream::inner_ty).flatten();
  // dbg!(stream_inner_ty);
 
  let orig_fn_ret_ty = match orig_fn_ret_ty {

@@ -1,5 +1,5 @@
-pub fn inner_ty(orig_fn_ret_ty: syn::Type) -> Option<syn::GenericArgument> {
- dbg!(orig_fn_ret_ty);
+pub fn inner_ty(_orig_fn_ret_ty: syn::Type) -> Option<syn::GenericArgument> {
+ // dbg!(orig_fn_ret_ty);
  None
  // let typepath = match orig_fn_ret_ty {
  //  syn::Type::Path(typepath) => Some(typepath),
