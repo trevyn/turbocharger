@@ -32,3 +32,17 @@ pub fn inner_ty(_orig_fn_ret_ty: syn::Type) -> Option<syn::GenericArgument> {
  // };
  // args.map(|args| args.into_iter().next()).flatten()
 }
+
+#[cfg(test)]
+mod tests {
+ use super::*;
+
+ #[test]
+ fn test_extract_stream() {
+  assert_eq!(
+   inner_ty(syn::parse_str::<syn::Type>("impl Stream<Item = u32>").unwrap()),
+   Some(syn::parse_str::<syn::GenericArgument>("u32").unwrap())
+  );
+  assert_eq!(inner_ty(syn::parse_str::<syn::Type>("u32").unwrap()), None);
+ }
+}
