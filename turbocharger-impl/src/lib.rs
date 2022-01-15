@@ -6,7 +6,7 @@
 
 mod extract_result;
 mod extract_stream;
-use proc_macro_error::{abort_call_site, proc_macro_error};
+use proc_macro_error::{abort, proc_macro_error};
 use quote::{format_ident, quote};
 
 /// Apply this to an item to make it available on the server target only.
@@ -56,7 +56,7 @@ fn backend_item(orig_item: syn::Item) -> proc_macro2::TokenStream {
   syn::Item::Fn(orig) => backend_fn(orig),
   syn::Item::Struct(orig) => backend_struct(orig),
   syn::Item::Mod(orig) => backend_mod(orig),
-  _ => abort_call_site!("Apply #[backend] to `fn`, `struct`, or `mod`."),
+  _ => abort!(orig_item, "Apply #[backend] to `fn`, `struct`, or `mod`."),
  }
 }
 
@@ -69,9 +69,10 @@ fn backend_mod_item(orig_item: syn::Item) -> proc_macro2::TokenStream {
 }
 
 fn backend_mod(orig_mod: syn::ItemMod) -> proc_macro2::TokenStream {
- let items: Vec<_> = orig_mod
-  .content
-  .unwrap_or_else(|| abort_call_site!("Apply #[backend] to a `mod` with a body."))
+ let content = orig_mod.content.clone();
+
+ let items: Vec<_> = content
+  .unwrap_or_else(|| abort!(orig_mod, "Apply #[backend] to a `mod` with a body."))
   .1
   .into_iter()
   .map(backend_mod_item)
@@ -143,10 +144,10 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
  let orig_fn_param_names: Vec<_> = orig_fn_params
   .iter()
   .map(|p| match p {
-   syn::FnArg::Receiver(_) => abort_call_site!("I don't know what to do with `self` here."),
+   syn::FnArg::Receiver(_) => abort!(p, "I don't know what to do with `self` here."),
    syn::FnArg::Typed(pattype) => match *pattype.pat.clone() {
     syn::Pat::Ident(i) => i.ident,
-    _ => abort_call_site!("Parameter name is not Ident"),
+    _ => abort!(pattype, "Parameter name is not Ident"),
    },
   })
   .collect();
@@ -154,7 +155,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
  let orig_fn_param_tys: Vec<_> = orig_fn_params
   .iter()
   .map(|p| match p {
-   syn::FnArg::Receiver(_) => abort_call_site!("I don't know what to do with `self` here."),
+   syn::FnArg::Receiver(_) => abort!(p, "I don't know what to do with `self` here."),
    syn::FnArg::Typed(pattype) => &pattype.ty,
   })
   .collect();
