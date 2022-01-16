@@ -90,7 +90,7 @@ fn backend_struct(orig_struct: syn::ItemStruct) -> proc_macro2::TokenStream {
   use wasm_bindgen::prelude::*;
 
   #[cfg_attr(target_arch = "wasm32", wasm_bindgen(getter_with_clone, inspectable))]
-  #[derive(::turbocharger::serde::Serialize, ::turbocharger::serde::Deserialize, Clone, Debug, Default)]
+  #[derive(::turbocharger::serde::Serialize, ::turbocharger::serde::Deserialize, Clone)]
   #(#attrs)*
   #[serde(crate = "::turbocharger::serde")]
   pub struct #ident #fields
