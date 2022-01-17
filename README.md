@@ -10,7 +10,7 @@ See [https://github.com/trevyn/turbocharger-template](https://github.com/trevyn/
 
 Makes a Rust _backend_ function, e.g.:
 
-```rust
+```rust,ignore
 #[turbocharger::backend]
 pub async fn get_person(id: i64) -> Person {
  // ... write any async backend code here; ...
@@ -45,7 +45,7 @@ See [https://github.com/trevyn/turbocharger-template](https://github.com/trevyn/
 
 ### `backend.rs`
 
-```rust
+```rust,ignore
 use turbocharger::backend;
 
 #[backend]
@@ -68,7 +68,7 @@ pub async fn get_person(rowid: i64) -> Result<Person, turbosql::Error> {
 
 ### `server.rs`
 
-```rust
+```rust,ignore
 mod backend;
 
 #[tokio::main]
@@ -80,7 +80,6 @@ async fn main() {
  eprintln!("Serving on http://127.0.0.1:8080");
  warp::serve(turbocharger::warp_routes(Frontend)).run(([127, 0, 0, 1], 8080)).await;
 }
-
 ```
 
 ### `index.js`
@@ -110,7 +109,7 @@ Note that `backend.rs` is compiled to both `wasm32-unknown-unknown` and the host
 
 ## Error Handling
 
-`#[backend]` functions that need to return an error can return a `Result<T, E>` where `T` is a `wasm-bindgen`-compatible type and `E` is a type that implements `std::error::Error`, including `Box<dyn std::error::Error>>` and `anyhow::Error`. Errors crossing the network boundary are converted to a `String` representation on the server via their `to_string()` method and delivered as a Promise rejection on the JS side.
+`#[backend]` functions that need to return an error can return a `Result<T, E: Display>` where `T` is a `wasm-bindgen`-compatible type and `E` is a type that implements `Display`, including any type implementing `std::error::Error`, including `Box<dyn std::error::Error>>` and `anyhow::Error`. Errors crossing the network boundary are converted to a `String` representation on the server via their `to_string()` method and delivered as a Promise rejection on the JS side.
 
 ## Server
 
@@ -118,10 +117,10 @@ Currently, the server side is batteries-included with `warp`, but this could be 
 
 ## WASM-only functions
 
-You can also easily add standard `#[wasm-bindgen]`-style Rust functions to `wasm.rs`, accessible from the frontend only:
+You can also easily add standard `#[wasm_bindgen]`-style Rust functions to `wasm.rs`, accessible from the frontend only:
 
-```rust
-#[wasm-bindgen]
+```rust,ignore
+#[wasm_bindgen]
 pub async fn get_wasm_greeting() -> String {
  "Hello from WASM".to_string()
 }
