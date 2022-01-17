@@ -23,7 +23,7 @@ pub use js_sys;
 #[typetag::serde]
 #[async_trait]
 pub trait RPC: Send + Sync {
- async fn execute(&self) -> Vec<u8>;
+ async fn execute(&self, sender: Box<dyn Fn(Vec<u8>) + Send>);
 }
 
 struct Globals {
@@ -149,8 +149,9 @@ async fn accept_connection(ws: warp::ws::WebSocket) {
    let msg = msg.as_bytes();
    if !msg.is_empty() {
     let target_func: Box<dyn RPC> = bincode::deserialize(msg).unwrap();
-    let response = target_func.execute().await;
-    tx_clone.send(warp::ws::Message::binary(response)).unwrap();
+    let sender =
+     Box::new(move |response| tx_clone.send(warp::ws::Message::binary(response)).unwrap());
+    target_func.execute(sender).await;
    }
   });
  }
@@ -222,8 +223,13 @@ pub async fn spawn_udp_server(port: u16) -> Result<(), Box<dyn std::error::Error
      let send_socket = socket.clone();
      tokio::task::spawn(async move {
       let target_func: Box<dyn RPC> = bincode::deserialize(&msg).unwrap();
-      let response = target_func.execute().await;
-      send_socket.send_to(&response, peer).await.unwrap();
+      let sender = Box::new(move |response: Vec<u8>| {
+       let send_socket_cloned = send_socket.clone();
+       tokio::task::spawn(async move {
+        send_socket_cloned.send_to(&response, peer).await.unwrap();
+       });
+      });
+      target_func.execute(sender).await;
      });
     }
     txid => {

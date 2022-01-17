@@ -193,12 +193,12 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
    #[::turbocharger::typetag::serde(name = #orig_fn_string)]
    #[::turbocharger::async_trait]
    impl ::turbocharger::RPC for super::#dispatch {
-    async fn execute(&self) -> Vec<u8> {
+    async fn execute(&self, sender: Box<dyn Fn(Vec<u8>) + Send>) {
      let response = super::#resp {
       txid: self.txid,
       result: super::#orig_fn_ident(#( self.params. #tuple_indexes .clone() ),*).await #maybe_map_err_string,
      };
-     ::turbocharger::bincode::serialize(&response).unwrap()
+     sender(::turbocharger::bincode::serialize(&response).unwrap());
     }
    }
   }
