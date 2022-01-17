@@ -54,12 +54,13 @@ static UDP_SOCKET: Lazy<Mutex<Option<std::sync::Arc<tokio::net::UdpSocket>>>> =
 #[wasm_only]
 #[macro_export]
 macro_rules! console_log {
-  ($($t:tt)*) => (
-   #[allow(unsafe_code)]
-   #[allow(unused_unsafe)]
-   unsafe { log(&format_args!($($t)*).to_string()) }
+ ($($t:tt)*) => (
+  let msg = &format_args!($($t)*).to_string();
+  #[allow(unsafe_code)]
+  #[allow(unused_unsafe)]
+  unsafe { log(msg); }
  )
- }
+}
 
 #[wasm_only]
 #[wasm_bindgen]
