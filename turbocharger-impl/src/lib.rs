@@ -10,8 +10,9 @@ use proc_macro_error::{abort, proc_macro_error};
 use quote::{format_ident, quote};
 
 /// Apply this to an item to make it available on the server target only.
+///
+/// Only adds `#[cfg(not(target_arch = "wasm32"))]`
 #[proc_macro_attribute]
-#[proc_macro_error]
 pub fn server_only(
  _args: proc_macro::TokenStream,
  input: proc_macro::TokenStream,
@@ -24,8 +25,9 @@ pub fn server_only(
 }
 
 /// Apply this to an item to make it available on the wasm target only.
+///
+/// Only adds `#[cfg(target_arch = "wasm32")]` and ensures `wasm_bindgen::prelude::*` is available.
 #[proc_macro_attribute]
-#[proc_macro_error]
 pub fn wasm_only(
  _args: proc_macro::TokenStream,
  input: proc_macro::TokenStream,
@@ -42,6 +44,8 @@ pub fn wasm_only(
 }
 
 /// Apply this to a `pub async fn` to make it available (over the network) to the JS frontend.
+///
+/// Also apply to any `struct`s used in backend function signatures.
 #[proc_macro_attribute]
 #[proc_macro_error]
 pub fn backend(
