@@ -47,7 +47,7 @@ pub struct Response {
 
 static G: Lazy<Mutex<Globals>> = Lazy::new(|| Mutex::new(Globals::default()));
 
-#[cfg(not(target_arch = "wasm32"))]
+#[server_only]
 static UDP_SOCKET: Lazy<Mutex<Option<std::sync::Arc<tokio::net::UdpSocket>>>> =
  Lazy::new(|| Mutex::new(None));
 
