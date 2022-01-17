@@ -48,8 +48,7 @@ pub struct Response {
 static G: Lazy<Mutex<Globals>> = Lazy::new(|| Mutex::new(Globals::default()));
 
 #[cfg(not(target_arch = "wasm32"))]
-#[doc(hidden)]
-pub static _UDP_SOCKET: Lazy<Mutex<Option<std::sync::Arc<tokio::net::UdpSocket>>>> =
+static UDP_SOCKET: Lazy<Mutex<Option<std::sync::Arc<tokio::net::UdpSocket>>>> =
  Lazy::new(|| Mutex::new(None));
 
 #[wasm_only]
@@ -182,6 +181,12 @@ impl _Transaction {
   channel.send(req).await.unwrap();
  }
 
+ #[server_only]
+ pub async fn send_udp(&self, peer: &str, req: Vec<u8>) {
+  let socket = UDP_SOCKET.lock().unwrap().clone().unwrap();
+  socket.send_to(&req, peer).await.unwrap();
+ }
+
  pub async fn resp(mut self) -> Vec<u8> {
   self.resp_rx.next().await.unwrap()
  }
@@ -198,7 +203,7 @@ impl Default for _Transaction {
 pub async fn spawn_udp_server(port: u16) -> Result<(), Box<dyn std::error::Error>> {
  let socket = std::sync::Arc::new(tokio::net::UdpSocket::bind(format!("0.0.0.0:{}", port)).await?);
  log::debug!("Listening on: {}", socket.local_addr()?);
- *_UDP_SOCKET.lock()? = Some(socket.clone());
+ *UDP_SOCKET.lock()? = Some(socket.clone());
 
  tokio::spawn(async move {
   loop {

@@ -238,11 +238,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
     params: (#( #orig_fn_param_names ),* #orig_fn_params_maybe_comma),
    })
    .unwrap();
-
-   let socket = ::turbocharger::_UDP_SOCKET.lock().unwrap().clone().unwrap();
-
-   socket.send_to(&req, peer).await.unwrap();
-
+   tx.send_udp(peer, req).await;
    let response = tx.resp().await;
    let #resp { result, .. } =
     ::turbocharger::bincode::deserialize(&response).unwrap();
