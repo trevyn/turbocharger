@@ -55,31 +55,31 @@ fn backend_item(orig_item: syn::Item) -> proc_macro2::TokenStream {
  match orig_item {
   syn::Item::Fn(orig) => backend_fn(orig),
   syn::Item::Struct(orig) => backend_struct(orig),
-  syn::Item::Mod(orig) => backend_mod(orig),
-  _ => abort!(orig_item, "Apply #[backend] to `fn`, `struct`, or `mod`."),
+  // syn::Item::Mod(orig) => backend_mod(orig),
+  _ => abort!(orig_item, "Apply #[backend] to `fn` or `struct`."),
  }
 }
 
-fn backend_mod_item(orig_item: syn::Item) -> proc_macro2::TokenStream {
- match orig_item {
-  syn::Item::Fn(orig) => backend_fn(orig),
-  syn::Item::Struct(orig) => backend_struct(orig),
-  orig => quote! { #orig },
- }
-}
+// fn backend_mod_item(orig_item: syn::Item) -> proc_macro2::TokenStream {
+//  match orig_item {
+//   syn::Item::Fn(orig) => backend_fn(orig),
+//   syn::Item::Struct(orig) => backend_struct(orig),
+//   orig => quote! { #orig },
+//  }
+// }
 
-fn backend_mod(orig_mod: syn::ItemMod) -> proc_macro2::TokenStream {
- let content = orig_mod.content.clone();
+// fn backend_mod(orig_mod: syn::ItemMod) -> proc_macro2::TokenStream {
+//  let content = orig_mod.content.clone();
 
- let items: Vec<_> = content
-  .unwrap_or_else(|| abort!(orig_mod, "Apply #[backend] to a `mod` with a body."))
-  .1
-  .into_iter()
-  .map(backend_mod_item)
-  .collect();
+//  let items: Vec<_> = content
+//   .unwrap_or_else(|| abort!(orig_mod, "Apply #[backend] to a `mod` with a body."))
+//   .1
+//   .into_iter()
+//   .map(backend_mod_item)
+//   .collect();
 
- quote! { #(#items)* }
-}
+//  quote! { #(#items)* }
+// }
 
 fn backend_struct(orig_struct: syn::ItemStruct) -> proc_macro2::TokenStream {
  let syn::ItemStruct { attrs, ident, fields, .. } = orig_struct;
