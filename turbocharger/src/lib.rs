@@ -12,7 +12,7 @@ pub use {bincode, serde};
 
 #[server_only]
 #[doc(hidden)]
-pub use {async_trait::async_trait, typetag};
+pub use {async_stream, async_trait::async_trait, typetag};
 
 #[cfg(target_arch = "wasm32")]
 #[doc(hidden)]

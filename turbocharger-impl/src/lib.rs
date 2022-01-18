@@ -120,21 +120,24 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
   syn::ReturnType::Type(_, path) => Some(*path),
  };
  let result_inner_ty = orig_fn_ret_ty.clone().map(extract_result::inner_ty).flatten();
- let _stream_inner_ty = orig_fn_ret_ty.clone().map(extract_stream::inner_ty).flatten();
- // dbg!(stream_inner_ty);
+ let stream_inner_ty = orig_fn_ret_ty.clone().map(extract_stream::inner_ty).flatten();
 
  let orig_fn_ret_ty = match orig_fn_ret_ty {
   Some(ty) => quote! { #ty },
   None => quote! { () },
  };
 
- let bindgen_ret_ty = match &result_inner_ty {
-  Some(ty) => quote! { Result<#ty, JsValue> },
-  None => quote! { #orig_fn_ret_ty },
+ let bindgen_ret_ty = match (&result_inner_ty, &stream_inner_ty) {
+  (Some(ty), None) => quote! { Result<#ty, JsValue> },
+  (None, Some(_ty)) => quote! { () },
+  (None, None) => quote! { #orig_fn_ret_ty },
+  _ => abort!(orig_fn.sig.output, "Only one of `Result` or `Stream` is allowed."),
  };
- let serialize_ret_ty = match &result_inner_ty {
-  Some(ty) => quote! { Result<#ty, String> },
-  None => quote! { #orig_fn_ret_ty },
+ let serialize_ret_ty = match (&result_inner_ty, &stream_inner_ty) {
+  (Some(ty), None) => quote! { Result<#ty, String> },
+  (None, Some(ty)) => quote! { #ty },
+  (None, None) => quote! { #orig_fn_ret_ty },
+  _ => abort!(orig_fn.sig.output, "Only one of `Result` or `Stream` is allowed."),
  };
  let maybe_map_err_string = match &result_inner_ty {
   Some(_) => quote! { .map_err(|e| e.to_string()) },
@@ -178,6 +181,18 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
  let impl_fn_ident = format_ident!("_TURBOCHARGER_IMPL_{}", orig_fn_ident);
  let remote_fn_ident = format_ident!("remote_{}", orig_fn_ident);
 
+ let executebody = match &stream_inner_ty {
+  Some(_ty) => quote! {},
+  None => quote! {
+   let result = super::#orig_fn_ident(#( self.params. #tuple_indexes .clone() ),*).await #maybe_map_err_string;
+   let response = super::#resp {
+    txid: self.txid,
+    result
+   };
+   sender(::turbocharger::bincode::serialize(&response).unwrap());
+  },
+ };
+
  quote! {
   #[cfg(target_arch = "wasm32")]
   #[allow(unused_imports)]
@@ -194,11 +209,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
    #[::turbocharger::async_trait]
    impl ::turbocharger::RPC for super::#dispatch {
     async fn execute(&self, sender: Box<dyn Fn(Vec<u8>) + Send>) {
-     let response = super::#resp {
-      txid: self.txid,
-      result: super::#orig_fn_ident(#( self.params. #tuple_indexes .clone() ),*).await #maybe_map_err_string,
-     };
-     sender(::turbocharger::bincode::serialize(&response).unwrap());
+     #executebody
     }
    }
   }
