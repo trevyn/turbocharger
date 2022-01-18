@@ -8,11 +8,11 @@ use std::sync::Mutex;
 pub use turbocharger_impl::{backend, server_only, wasm_only};
 
 #[doc(hidden)]
-pub use {bincode, futures_core, futures_util, serde};
+pub use {bincode, serde};
 
 #[server_only]
 #[doc(hidden)]
-pub use {async_stream, async_trait::async_trait, typetag};
+pub use {async_stream, async_trait::async_trait, futures_core, futures_util, typetag};
 
 #[cfg(target_arch = "wasm32")]
 #[doc(hidden)]
