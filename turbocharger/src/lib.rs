@@ -8,7 +8,7 @@ use std::sync::Mutex;
 pub use turbocharger_impl::{backend, server_only, wasm_only};
 
 #[doc(hidden)]
-pub use {bincode, serde};
+pub use {bincode, futures_core, futures_util, serde};
 
 #[server_only]
 #[doc(hidden)]

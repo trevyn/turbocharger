@@ -131,13 +131,13 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
   (Some(ty), None) => quote! { Result<#ty, JsValue> },
   (None, Some(_ty)) => quote! { () },
   (None, None) => quote! { #orig_fn_ret_ty },
-  _ => abort!(orig_fn.sig.output, "Only one of `Result` or `Stream` is allowed."),
+  _ => abort!(orig_fn_ret_ty, "Only one of `Result` or `Stream` is allowed."),
  };
  let serialize_ret_ty = match (&result_inner_ty, &stream_inner_ty) {
   (Some(ty), None) => quote! { Result<#ty, String> },
   (None, Some(ty)) => quote! { #ty },
   (None, None) => quote! { #orig_fn_ret_ty },
-  _ => abort!(orig_fn.sig.output, "Only one of `Result` or `Stream` is allowed."),
+  _ => abort!(orig_fn_ret_ty, "Only one of `Result` or `Stream` is allowed."),
  };
  let maybe_map_err_string = match &result_inner_ty {
   Some(_) => quote! { .map_err(|e| e.to_string()) },
@@ -182,7 +182,18 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
  let remote_fn_ident = format_ident!("remote_{}", orig_fn_ident);
 
  let executebody = match &stream_inner_ty {
-  Some(_ty) => quote! {},
+  Some(_ty) => quote! {
+   use turbocharger::futures_util::stream::StreamExt;
+   let stream = super::#orig_fn_ident(#( self.params. #tuple_indexes .clone() ),*);
+   ::turbocharger::futures_util::pin_mut!(stream);
+   while let Some(result) = stream.next().await {
+    let response = super::#resp {
+     txid: self.txid,
+     result
+    };
+    sender(::turbocharger::bincode::serialize(&response).unwrap());
+   }
+  },
   None => quote! {
    let result = super::#orig_fn_ident(#( self.params. #tuple_indexes .clone() ),*).await #maybe_map_err_string;
    let response = super::#resp {
