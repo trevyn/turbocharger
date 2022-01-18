@@ -175,6 +175,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
  };
 
  let mod_name = format_ident!("_TURBOCHARGER_{}", orig_fn_ident);
+ let store_name = format_ident!("_TURBOCHARGER_STORE_{}", orig_fn_ident);
  let dispatch = format_ident!("_TURBOCHARGER_DISPATCH_{}", orig_fn_ident);
  let req = format_ident!("_TURBOCHARGER_REQ_{}", orig_fn_ident);
  let resp = format_ident!("_TURBOCHARGER_RESP_{}", orig_fn_ident);
@@ -183,9 +184,9 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
 
  let executebody = match &stream_inner_ty {
   Some(_ty) => quote! {
-   use turbocharger::futures_util::stream::StreamExt;
+   use ::turbocharger::futures::stream::StreamExt;
    let stream = super::#orig_fn_ident(#( self.params. #tuple_indexes .clone() ),*);
-   ::turbocharger::futures_util::pin_mut!(stream);
+   ::turbocharger::futures::pin_mut!(stream);
    while let Some(result) = stream.next().await {
     let response = super::#resp {
      txid: self.txid,
@@ -201,6 +202,61 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
     result
    };
    sender(::turbocharger::bincode::serialize(&response).unwrap());
+  },
+ };
+
+ let wasm_side = match &stream_inner_ty {
+  Some(ty) => quote! {
+   #[cfg(target_arch = "wasm32")]
+   #[allow(non_camel_case_types)]
+   #[wasm_bindgen]
+   pub struct #store_name {
+    value: Option< #ty >,
+    subscriptions: Vec<::turbocharger::js_sys::Function>,
+   }
+
+   #[cfg(target_arch = "wasm32")]
+   #[wasm_bindgen]
+   impl #store_name {
+    #[wasm_bindgen]
+    pub fn subscribe(&mut self, subscription: ::turbocharger::js_sys::Function) -> JsValue {
+     if let Some(value) = &self.value {
+      let this = JsValue::null();
+      subscription.call1(&this, &value.clone().into()).ok();
+     }
+     self.subscriptions.push(subscription);
+
+     Closure::wrap(Box::new(move || {
+      dbg!("unsubscribe called!!");
+     }) as Box<dyn Fn()>)
+     .into_js_value()
+    }
+   }
+  },
+  None => quote! {
+   #[cfg(target_arch = "wasm32")]
+   #[wasm_bindgen]
+   pub async fn #orig_fn_ident(#orig_fn_params) -> #bindgen_ret_ty {
+    #impl_fn_ident(#( #orig_fn_param_names ),*) .await #maybe_map_err_jsvalue
+   }
+
+   #[cfg(target_arch = "wasm32")]
+   #[allow(non_snake_case)]
+   async fn #impl_fn_ident(#orig_fn_params) -> #serialize_ret_ty {
+    let tx = ::turbocharger::_Transaction::new();
+    let req = ::turbocharger::bincode::serialize(&#req {
+     typetag_const_one: 1,
+     dispatch_name: #orig_fn_string,
+     txid: tx.txid,
+     params: (#( #orig_fn_param_names ),* #orig_fn_params_maybe_comma),
+    })
+    .unwrap();
+    tx.send_ws(req).await;
+    let response = tx.resp().await;
+    let #resp { result, .. } =
+     ::turbocharger::bincode::deserialize(&response).unwrap();
+    result
+   }
   },
  };
 
@@ -225,29 +281,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
    }
   }
 
-  #[cfg(target_arch = "wasm32")]
-  #[wasm_bindgen]
-  pub async fn #orig_fn_ident(#orig_fn_params) -> #bindgen_ret_ty {
-   #impl_fn_ident(#( #orig_fn_param_names ),*) .await #maybe_map_err_jsvalue
-  }
-
-  #[cfg(target_arch = "wasm32")]
-  #[allow(non_snake_case)]
-  async fn #impl_fn_ident(#orig_fn_params) -> #serialize_ret_ty {
-   let tx = ::turbocharger::_Transaction::new();
-   let req = ::turbocharger::bincode::serialize(&#req {
-    typetag_const_one: 1,
-    dispatch_name: #orig_fn_string,
-    txid: tx.txid,
-    params: (#( #orig_fn_param_names ),* #orig_fn_params_maybe_comma),
-   })
-   .unwrap();
-   tx.send_ws(req).await;
-   let response = tx.resp().await;
-   let #resp { result, .. } =
-    ::turbocharger::bincode::deserialize(&response).unwrap();
-   result
-  }
+  #wasm_side
 
   #[cfg(not(target_arch = "wasm32"))]
   #[allow(non_snake_case)]
