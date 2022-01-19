@@ -236,7 +236,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
 
    #[cfg(target_arch = "wasm32")]
    #[wasm_bindgen]
-   pub async fn #orig_fn_ident(#orig_fn_params) -> #bindgen_ret_ty {
+   pub fn #orig_fn_ident(#orig_fn_params) -> #bindgen_ret_ty {
     let tx = ::turbocharger::_Transaction::new();
     let req = ::turbocharger::bincode::serialize(&#req {
      typetag_const_one: 1,
@@ -245,12 +245,13 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
      params: (#( #orig_fn_param_names ),* #orig_fn_params_maybe_comma),
     })
     .unwrap();
-    tx.send_ws(req).await;
+    tx.send_ws(req);
+    tx.set_sender(Box::new(move |response| {
+     let #resp { result, .. } =
+      ::turbocharger::bincode::deserialize(&response).unwrap();
+     ::turbocharger::console_log!("got result: {:?}", result);
+    }));
     #store_name ::default()
-    // let response = tx.resp().await;
-    // let #resp { result, .. } =
-    //  ::turbocharger::bincode::deserialize(&response).unwrap();
-    // result
    }
   },
   None => quote! {
@@ -271,7 +272,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
      params: (#( #orig_fn_param_names ),* #orig_fn_params_maybe_comma),
     })
     .unwrap();
-    tx.send_ws(req).await;
+    tx.send_ws(req);
     let response = tx.resp().await;
     let #resp { result, .. } =
      ::turbocharger::bincode::deserialize(&response).unwrap();

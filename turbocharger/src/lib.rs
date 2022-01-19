@@ -55,11 +55,25 @@ static UDP_SOCKET: Lazy<Mutex<Option<std::sync::Arc<tokio::net::UdpSocket>>>> =
 #[macro_export]
 macro_rules! console_log {
  ($($t:tt)*) => (
-  let msg = &format_args!($($t)*).to_string();
-  #[allow(unsafe_code)]
-  #[allow(unused_unsafe)]
-  unsafe { log(msg); }
+  ::turbocharger::call_console_log(&format_args!($($t)*).to_string());
  )
+}
+
+#[wasm_only]
+macro_rules! tc_console_log {
+ ($($t:tt)*) => (
+  call_console_log(&format_args!($($t)*).to_string());
+ )
+}
+
+#[wasm_only]
+#[doc(hidden)]
+pub fn call_console_log(msg: &str) {
+ #[allow(unsafe_code)]
+ #[allow(unused_unsafe)]
+ unsafe {
+  log(msg);
+ }
 }
 
 #[wasm_only]
@@ -178,9 +192,12 @@ impl _Transaction {
   _Transaction { txid, resp_rx }
  }
 
- pub async fn send_ws(&self, req: Vec<u8>) {
-  let mut channel = G.lock().unwrap().channel_tx.clone().unwrap();
-  channel.send(req).await.unwrap();
+ #[cfg(target_arch = "wasm32")]
+ pub fn send_ws(&self, req: Vec<u8>) {
+  wasm_bindgen_futures::spawn_local(async move {
+   let mut channel = G.lock().unwrap().channel_tx.clone().unwrap();
+   channel.send(req).await.unwrap();
+  });
  }
 
  #[server_only]
@@ -191,6 +208,15 @@ impl _Transaction {
 
  pub async fn resp(mut self) -> Vec<u8> {
   self.resp_rx.next().await.unwrap()
+ }
+
+ #[cfg(target_arch = "wasm32")]
+ pub fn set_sender(mut self, sender: Box<dyn Fn(Vec<u8>) + Send>) {
+  wasm_bindgen_futures::spawn_local(async move {
+   while let Some(msg) = self.resp_rx.next().await {
+    sender(msg);
+   }
+  });
  }
 }
 
@@ -264,11 +290,11 @@ pub async fn start() -> Result<(), JsValue> {
   format!("{}//{}/turbocharger_socket", protocol, location.host().unwrap())
  };
 
- console_log!("connecting to {}", socket_url);
+ tc_console_log!("connecting to {}", socket_url);
 
  let (_ws, wsio) = ws_stream_wasm::WsMeta::connect(socket_url, None).await.unwrap();
 
- console_log!("connected");
+ tc_console_log!("connected");
 
  let (mut ws_tx, mut ws_rx) = wsio.split();
 
@@ -280,14 +306,14 @@ pub async fn start() -> Result<(), JsValue> {
     sender.send(msg).await.unwrap();
    }
   }
-  console_log!("ws_rx ENDED");
+  tc_console_log!("ws_rx ENDED");
  });
 
  wasm_bindgen_futures::spawn_local(async move {
   while let Some(msg) = channel_rx.next().await {
    ws_tx.send(ws_stream_wasm::WsMessage::Binary(msg)).await.unwrap();
   }
-  console_log!("rx ENDED");
+  tc_console_log!("rx ENDED");
  });
 
  Ok(())
