@@ -130,10 +130,16 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
  let result_inner_ty = orig_fn_ret_ty.clone().map(extract_result::inner_ty).flatten();
  let stream_inner_ty = orig_fn_ret_ty.clone().map(extract_stream::inner_ty).flatten();
 
- let orig_fn_ret_ty = match orig_fn_ret_ty {
-  Some(ty) => quote! { #ty },
-  None => quote! { () },
+ let orig_fn_ret_ty = match (&orig_fn_ret_ty, &stream_inner_ty) {
+  (Some(ty), None) => quote! { #ty },
+  (Some(_), Some(ty)) => quote! { impl ::turbocharger::futures::stream::Stream<Item = #ty > },
+  (None, None) => quote! { () },
+  _ => abort!(orig_fn_ret_ty, "Really confused about this return type!"),
  };
+
+ let mut orig_fn = orig_fn;
+
+ orig_fn.sig.output = dbg!(syn::parse2(quote! { -> #orig_fn_ret_ty })).unwrap();
 
  let bindgen_ret_ty = match (&result_inner_ty, &stream_inner_ty) {
   (Some(ty), None) => quote! { Result<#ty, JsValue> },
