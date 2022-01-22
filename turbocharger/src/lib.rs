@@ -27,6 +27,7 @@ pub trait RPC: Send + Sync {
 }
 
 struct Globals {
+ #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
  channel_tx: Option<futures::channel::mpsc::UnboundedSender<Vec<u8>>>,
  next_txid: i64,
  senders: std::collections::HashMap<i64, futures::channel::mpsc::UnboundedSender<Vec<u8>>>,
@@ -211,7 +212,7 @@ impl _Transaction {
  }
 
  #[cfg(target_arch = "wasm32")]
- pub fn set_sender(mut self, sender: Box<dyn Fn(Vec<u8>) + Send>) {
+ pub fn set_sender(mut self, sender: Box<dyn Fn(Vec<u8>)>) {
   wasm_bindgen_futures::spawn_local(async move {
    while let Some(msg) = self.resp_rx.next().await {
     sender(msg);

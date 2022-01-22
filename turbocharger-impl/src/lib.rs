@@ -139,7 +139,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
 
  let mut orig_fn = orig_fn;
 
- orig_fn.sig.output = dbg!(syn::parse2(quote! { -> #orig_fn_ret_ty })).unwrap();
+ orig_fn.sig.output = syn::parse2(quote! { -> #orig_fn_ret_ty }).unwrap();
 
  let bindgen_ret_ty = match (&result_inner_ty, &stream_inner_ty) {
   (Some(ty), None) => quote! { Result<#ty, JsValue> },
@@ -219,7 +219,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
    #[wasm_bindgen]
    pub struct #store_name {
     value: Option< #ty >,
-    subscriptions: Vec<::turbocharger::js_sys::Function>,
+    subscriptions: std::sync::Arc<std::sync::Mutex<Vec<::turbocharger::js_sys::Function>>>,
    }
 
    #[cfg(target_arch = "wasm32")]
@@ -228,10 +228,9 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
     #[wasm_bindgen]
     pub fn subscribe(&mut self, subscription: ::turbocharger::js_sys::Function) -> JsValue {
      if let Some(value) = &self.value {
-      let this = JsValue::null();
-      subscription.call1(&this, &value.clone().into()).ok();
+      subscription.call1(&JsValue::null(), &value.clone().into()).ok();
      }
-     self.subscriptions.push(subscription);
+     self.subscriptions.lock().unwrap().push(subscription);
 
      Closure::wrap(Box::new(move || {
       dbg!("unsubscribe called!!");
@@ -252,12 +251,17 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
     })
     .unwrap();
     tx.send_ws(req);
+    let store = #store_name ::default();
+    let subscriptions = store.subscriptions.clone();
     tx.set_sender(Box::new(move |response| {
      let #resp { result, .. } =
       ::turbocharger::bincode::deserialize(&response).unwrap();
      ::turbocharger::console_log!("got result: {:?}", result);
+     for subscription in subscriptions.lock().unwrap().iter() {
+      subscription.call1(&JsValue::null(), &result.into()).ok();
+     }
     }));
-    #store_name ::default()
+    store
    }
   },
   None => quote! {
