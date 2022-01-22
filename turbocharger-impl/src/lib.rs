@@ -43,9 +43,7 @@ pub fn wasm_only(
  })
 }
 
-/// Apply this to a `pub async fn` to make it available (over the network) to the JS frontend.
-///
-/// Also apply to any `struct`s used in backend function signatures.
+/// Apply this to a `pub async fn` to make it available (over the network) to the JS frontend. Also apply to any `struct`s used in backend function signatures.
 #[proc_macro_attribute]
 #[proc_macro_error]
 pub fn backend(
@@ -218,7 +216,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
    #[derive(Default)]
    #[wasm_bindgen]
    pub struct #store_name {
-    value: Option< #ty >,
+    value: std::sync::Arc<std::sync::Mutex<Option< #ty >>>,
     subscriptions: std::sync::Arc<std::sync::Mutex<Vec<::turbocharger::js_sys::Function>>>,
    }
 
@@ -227,8 +225,8 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
    impl #store_name {
     #[wasm_bindgen]
     pub fn subscribe(&mut self, subscription: ::turbocharger::js_sys::Function) -> JsValue {
-     if let Some(value) = &self.value {
-      subscription.call1(&JsValue::null(), &value.clone().into()).ok();
+     if let Some(value) = self.value.lock().unwrap().clone() {
+      subscription.call1(&JsValue::null(), &value.into()).ok();
      }
      self.subscriptions.lock().unwrap().push(subscription);
 
@@ -253,10 +251,11 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
     tx.send_ws(req);
     let store = #store_name ::default();
     let subscriptions = store.subscriptions.clone();
+    let value = store.value.clone();
     tx.set_sender(Box::new(move |response| {
      let #resp { result, .. } =
       ::turbocharger::bincode::deserialize(&response).unwrap();
-     ::turbocharger::console_log!("got result: {:?}", result);
+     value.lock().unwrap().replace(result);
      for subscription in subscriptions.lock().unwrap().iter() {
       subscription.call1(&JsValue::null(), &result.into()).ok();
      }

@@ -46,11 +46,11 @@ pub struct Response {
  pub resp: Vec<u8>,
 }
 
-static G: Lazy<Mutex<Globals>> = Lazy::new(|| Mutex::new(Globals::default()));
+static G: Lazy<Mutex<Globals>> = Lazy::new(Mutex::default);
 
 #[server_only]
 static UDP_SOCKET: Lazy<Mutex<Option<std::sync::Arc<tokio::net::UdpSocket>>>> =
- Lazy::new(|| Mutex::new(None));
+ Lazy::new(Mutex::default);
 
 #[wasm_only]
 #[macro_export]
@@ -84,7 +84,7 @@ extern "C" {
  fn log(s: &str);
 }
 
-/// Returns a combined `warp` route for serving both the Turbocharger socket and the static frontend files.
+/// Returns a combined `warp` route for serving both the Turbocharger WebSocket and the static frontend files.
 #[server_only]
 pub fn warp_routes<A: 'static + rust_embed::RustEmbed>(
  asset: A,
@@ -93,7 +93,7 @@ pub fn warp_routes<A: 'static + rust_embed::RustEmbed>(
  warp_socket_route().or(warp_rust_embed_route(asset)).boxed()
 }
 
-/// Returns a `warp` route for serving the Turbocharger socket.
+/// Returns a `warp` route for serving the Turbocharger WebSocket.
 #[server_only]
 pub fn warp_socket_route() -> warp::filters::BoxedFilter<(impl warp::Reply,)> {
  use warp::Filter;
@@ -227,8 +227,9 @@ impl Default for _Transaction {
  }
 }
 
-/// Spawns a new Turbocharger UDP server. Future resolves when the server is ready to respond to requests.
+/// _Experimental._ Spawns a new Turbocharger UDP server. Future resolves when the server is ready to respond to requests.
 #[server_only]
+#[doc(hidden)]
 pub async fn spawn_udp_server(port: u16) -> Result<(), Box<dyn std::error::Error>> {
  let socket = std::sync::Arc::new(tokio::net::UdpSocket::bind(format!("0.0.0.0:{}", port)).await?);
  log::debug!("Listening on: {}", socket.local_addr()?);
