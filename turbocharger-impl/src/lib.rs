@@ -213,8 +213,8 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
   Some(ty) => quote! {
    #[cfg(target_arch = "wasm32")]
    #[allow(non_camel_case_types)]
-   #[derive(Default)]
    #[wasm_bindgen]
+   #[derive(Default)]
    pub struct #store_name {
     value: std::sync::Arc<std::sync::Mutex<Option< #ty >>>,
     subscriptions: std::sync::Arc<std::sync::Mutex<Vec<::turbocharger::js_sys::Function>>>,

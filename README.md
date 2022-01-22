@@ -49,7 +49,7 @@ See [https://github.com/trevyn/turbocharger-template](https://github.com/trevyn/
 use turbocharger::backend;
 
 #[backend]
-#[derive(turbosql::Turbosql)]
+#[derive(turbosql::Turbosql, Default)]
 pub struct Person {
  pub rowid: Option<i64>,
  pub name: Option<String>,
