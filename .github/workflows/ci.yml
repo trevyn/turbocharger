@@ -25,7 +25,7 @@ jobs:
         run: exit ${{ steps.lychee.outputs.exit_code }}
 
   test:
-    name: build ${{ matrix.os }} rust ${{ matrix.rust }}
+    name: test ${{ matrix.os }} rust ${{ matrix.rust }}
     runs-on: ${{ matrix.os }}
 
     env:
