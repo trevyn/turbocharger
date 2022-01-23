@@ -31,13 +31,16 @@ ws_stream_wasm = "0.7"
 async-stream = "0.3"
 async-trait = "0.1"
 axum = {version = "0.4", features = ["ws", "headers"], optional = true}
+hyper = {version = "0.14", optional = true}
 log = "0.4"
 mime_guess = {version = "2", optional = true}
 rust-embed = {version = "6", optional = true}
+rustls-pemfile = {version = "0.2", optional = true}
 tokio = "1"
+tokio-rustls = {version = "0.23", optional = true}
 tokio-stream = {version = "0.1", features = ["net"]}
 typetag = "0.1"
 
 [features]
-axum_server = ["rust-embed", "mime_guess", "axum"]
+axum_server = ["rust-embed", "mime_guess", "axum", "tokio-rustls", "rustls-pemfile", "hyper"]
 full = ["axum_server"]

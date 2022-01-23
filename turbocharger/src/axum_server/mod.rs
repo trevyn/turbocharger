@@ -1,3 +1,5 @@
+mod tls;
+
 use axum::{
  body::{boxed, Full},
  extract::{
@@ -15,6 +17,7 @@ use futures::{SinkExt, StreamExt, TryFutureExt};
 use rust_embed::RustEmbed;
 use std::marker::PhantomData;
 use std::net::SocketAddr;
+use std::path::Path;
 
 /// Convenience function to run a full server with static files from `rust_embed` and the Turbocharger WebSocket.
 pub async fn serve<A: 'static + RustEmbed>(addr: &SocketAddr) {
@@ -23,6 +26,19 @@ pub async fn serve<A: 'static + RustEmbed>(addr: &SocketAddr) {
   .fallback(rust_embed_handler::<A>.into_service());
 
  Server::bind(addr).serve(app.into_make_service()).await.unwrap();
+}
+
+/// Convenience function to run a full server with static files from `rust_embed` and the Turbocharger WebSocket.
+pub async fn serve_tls<A: 'static + RustEmbed>(
+ addr: &SocketAddr,
+ key_path: &Path,
+ cert_path: &Path,
+) {
+ let app = Router::new()
+  .route("/turbocharger_socket", get(ws_handler))
+  .fallback(rust_embed_handler::<A>.into_service());
+
+ tls::serve(addr, key_path, cert_path, app).await.unwrap();
 }
 
 /// Axum handler for serving static files from rust_embed.
