@@ -84,95 +84,9 @@ extern "C" {
  fn log(s: &str);
 }
 
-/// Returns a combined `warp` route for serving both the Turbocharger WebSocket and the static frontend files.
-#[server_only]
-pub fn warp_routes<A: 'static + rust_embed::RustEmbed>(
- asset: A,
-) -> warp::filters::BoxedFilter<(impl warp::Reply,)> {
- use warp::Filter;
- warp_socket_route().or(warp_rust_embed_route(asset)).boxed()
-}
-
-/// Returns a `warp` route for serving the Turbocharger WebSocket.
-#[server_only]
-pub fn warp_socket_route() -> warp::filters::BoxedFilter<(impl warp::Reply,)> {
- use warp::Filter;
- warp::path("turbocharger_socket")
-  .and(warp::ws())
-  .map(|ws: warp::ws::Ws| ws.on_upgrade(accept_connection))
-  .boxed()
-}
-
-/// Returns a `warp` route for serving static frontend files sourced from the `rust_embed` crate.
-#[server_only]
-pub fn warp_rust_embed_route<A: rust_embed::RustEmbed>(
- _asset: A,
-) -> warp::filters::BoxedFilter<(impl warp::Reply,)> {
- use warp::Filter;
- warp::path::full()
-  .map(|path: warp::path::FullPath| {
-   let path = match path.as_str().trim_start_matches('/') {
-    "" => "index.html",
-    path => path,
-   };
-   match A::get(path) {
-    None => warp::http::Response::builder().status(404).body("404 not found!".into()).unwrap(),
-    Some(asset) => {
-     let mime = mime_guess::from_path(path).first_or_octet_stream();
-     let mut res = warp::reply::Response::new(asset.data.into());
-     res
-      .headers_mut()
-      .insert("content-type", warp::http::header::HeaderValue::from_str(mime.as_ref()).unwrap());
-     res
-    }
-   }
-  })
-  .boxed()
-}
-
-#[server_only]
-async fn accept_connection(ws: warp::ws::WebSocket) {
- use futures::TryFutureExt;
-
- log::debug!("accept_connection");
-
- let (mut ws_tx, mut ws_rx) = ws.split();
- let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
- let mut rx = tokio_stream::wrappers::UnboundedReceiverStream::new(rx);
-
- tokio::task::spawn(async move {
-  while let Some(msg) = rx.next().await {
-   ws_tx
-    .send(msg)
-    .unwrap_or_else(|e| {
-     log::warn!("websocket send error: {}", e);
-    })
-    .await;
-  }
- });
-
- while let Some(result) = ws_rx.next().await {
-  let msg = match result {
-   Ok(msg) => msg,
-   Err(e) => {
-    log::warn!("websocket error: {}", e);
-    break;
-   }
-  };
-  let tx_clone = tx.clone();
-  tokio::task::spawn(async move {
-   let msg = msg.as_bytes();
-   if !msg.is_empty() {
-    let target_func: Box<dyn RPC> = bincode::deserialize(msg).unwrap();
-    let sender =
-     Box::new(move |response| tx_clone.send(warp::ws::Message::binary(response)).unwrap());
-    target_func.execute(sender).await;
-   }
-  });
- }
-
- log::warn!("accept_connection completed")
-}
+#[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "axum_server")]
+pub mod axum_server;
 
 #[doc(hidden)]
 pub struct _Transaction {

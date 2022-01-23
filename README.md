@@ -35,7 +35,7 @@ Works with any types that are [supported by](https://rustwasm.github.io/docs/was
 
 ## How It Works
 
-A proc macro auto-generates a frontend `wasm-bindgen` module, which serializes the JS function call parameters with `bincode`. These requests are sent over a shared WebSocket connection to a provided `warp` endpoint on the backend server, which calls your Rust function and serializes the response. This is sent back over the WebSocket and resolves the Promise returned by the original function call.
+A proc macro auto-generates a frontend `wasm-bindgen` module, which serializes the JS function call parameters with `bincode`. These requests are sent over a shared WebSocket connection to a provided `axum` endpoint on the backend server, which calls your Rust function and serializes the response. This is sent back over the WebSocket and resolves the Promise returned by the original function call.
 
 Multiple async requests can be simultaneously in-flight over a single multiplexed connection; it all just works.
 
@@ -78,7 +78,8 @@ async fn main() {
  struct Frontend;
 
  eprintln!("Serving on http://127.0.0.1:8080");
- warp::serve(turbocharger::warp_routes(Frontend)).run(([127, 0, 0, 1], 8080)).await;
+ let addr = std::net::SocketAddr::from(([0, 0, 0, 0], 8080));
+ turbocharger::axum_server::serve::<Frontend>(&addr).await;
 }
 ```
 
@@ -110,10 +111,6 @@ Note that `backend.rs` is compiled to both `wasm32-unknown-unknown` and the host
 ## Error Handling
 
 `#[backend]` functions that need to return an error can return a `Result<T, E: Display>` where `T` is a `wasm-bindgen`-compatible type and `E` is a type that implements `Display`, including any type implementing `std::error::Error`, including `Box<dyn std::error::Error>>` and `anyhow::Error`. Errors crossing the network boundary are converted to a `String` representation on the server via their `to_string()` method and delivered as a Promise rejection on the JS side.
-
-## Server
-
-Currently, the server side is batteries-included with `warp`, but this could be decoupled in the future. If this decoupling would be useful to you, please open a GitHub issue describing a use case.
 
 ## WASM-only functions
 
