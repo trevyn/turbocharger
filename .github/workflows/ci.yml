@@ -51,6 +51,7 @@ jobs:
 
       - run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
+      - run: git submodule update --init
       - run: git submodule update --remote
 
       - run: npm run build
