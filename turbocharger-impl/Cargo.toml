@@ -12,6 +12,7 @@ version = "0.2.0"
 proc-macro = true
 
 [dependencies]
+prettyplease = "0.1"
 proc-macro-error = "1"
 proc-macro2 = "1"
 quote = "1"
