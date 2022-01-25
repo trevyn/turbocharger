@@ -89,10 +89,7 @@ fn backend_struct(orig_struct: syn::ItemStruct) -> proc_macro2::TokenStream {
  for field in &mut api_struct.fields {
   field.attrs.clear();
  }
- // eprintln!("{}", quote!(#api_struct));
- let file: syn::File = syn::parse_str(&quote!(#api_struct).to_string()).unwrap();
- let formatted = prettyplease::unparse(&file);
- println!("{}", formatted);
+ println!("{}", prettyplease::unparse(&syn::parse_quote!(#api_struct)));
 
  let syn::ItemStruct { attrs, ident, fields, .. } = orig_struct;
 
@@ -121,10 +118,7 @@ fn backend_struct(orig_struct: syn::ItemStruct) -> proc_macro2::TokenStream {
 fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
  let mut api_fn = orig_fn.clone();
  api_fn.block = syn::parse_quote!({});
- // eprintln!("{}", quote!(#api_fn));
- let file: syn::File = syn::parse_str(&quote!(#api_fn).to_string()).unwrap();
- let formatted = prettyplease::unparse(&file);
- println!("{}", formatted);
+ println!("{}", prettyplease::unparse(&syn::parse_quote!(#api_fn)));
 
  let orig_fn_ident = orig_fn.sig.ident.clone();
  let orig_fn_string = orig_fn_ident.to_string();
