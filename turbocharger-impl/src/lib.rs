@@ -141,6 +141,7 @@ fn backend_struct(orig_struct: syn::ItemStruct) -> proc_macro2::TokenStream {
 
 fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
  let mut api_fn = orig_fn.clone();
+ api_fn.vis = parse_quote!();
  api_fn.block = parse_quote!({});
 
  let lockfile = std::fs::File::create(std::env::temp_dir().join("turbocharger.lock")).unwrap();
