@@ -34,11 +34,13 @@ pub async fn serve(
  let certs = load_certs(cert_path)?;
  let mut keys = load_keys(key_path)?;
 
- let config = rustls::ServerConfig::builder()
+ let mut config = rustls::ServerConfig::builder()
   .with_safe_defaults()
   .with_no_client_auth()
   .with_single_cert(certs, keys.remove(0))
   .map_err(|err| io::Error::new(io::ErrorKind::InvalidInput, err))?;
+
+ config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
 
  let acceptor = TlsAcceptor::from(Arc::new(config));
  let listener = TcpListener::bind(addr).await?;
