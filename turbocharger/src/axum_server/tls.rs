@@ -4,35 +4,33 @@
 // https://github.com/tokio-rs/axum/blob/3b579c721504d4d64de74b414f39c3dfb33b923a/examples/tls_rustls.rs
 
 use axum::routing::Router;
-use std::fs::File;
 use std::io::{self, BufReader};
 use std::net::SocketAddr;
-use std::path::Path;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio_rustls::rustls::{self, Certificate, PrivateKey};
 use tokio_rustls::TlsAcceptor;
 
-fn load_certs(path: &Path) -> io::Result<Vec<Certificate>> {
- rustls_pemfile::certs(&mut BufReader::new(File::open(path)?))
+fn load_certs(s: &str) -> io::Result<Vec<Certificate>> {
+ rustls_pemfile::certs(&mut BufReader::new(s.as_bytes()))
   .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "invalid cert"))
   .map(|mut certs| certs.drain(..).map(Certificate).collect())
 }
 
-fn load_keys(path: &Path) -> io::Result<Vec<PrivateKey>> {
- rustls_pemfile::pkcs8_private_keys(&mut BufReader::new(File::open(path)?))
+fn load_keys(s: &str) -> io::Result<Vec<PrivateKey>> {
+ rustls_pemfile::pkcs8_private_keys(&mut BufReader::new(s.as_bytes()))
   .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "invalid key"))
   .map(|mut keys| keys.drain(..).map(PrivateKey).collect())
 }
 
 pub async fn serve(
  addr: &SocketAddr,
- key_path: &Path,
- cert_path: &Path,
+ key: &str,
+ cert: &str,
  app: Router,
 ) -> Result<(), Box<dyn std::error::Error>> {
- let certs = load_certs(cert_path)?;
- let mut keys = load_keys(key_path)?;
+ let certs = load_certs(cert)?;
+ let mut keys = load_keys(key)?;
 
  let mut config = rustls::ServerConfig::builder()
   .with_safe_defaults()
