@@ -86,7 +86,11 @@ extern "C" {
 
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(feature = "axum_server")]
-pub mod axum_server;
+mod axum_server;
+
+#[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "axum_server")]
+pub use axum_server::{serve, serve_tls};
 
 #[doc(hidden)]
 pub struct _Transaction {
