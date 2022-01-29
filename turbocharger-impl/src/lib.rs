@@ -1,6 +1,6 @@
 //! This crate provides Turbocharger's procedural macros.
 //!
-//! Please refer to the `turbocharger` crate for how to set this up.
+//! Please refer to the `turbocharger` crate for details.
 
 #![forbid(unsafe_code)]
 
@@ -87,10 +87,10 @@ fn backend_item(orig_item: syn::Item) -> proc_macro2::TokenStream {
 fn backend_struct(orig_struct: syn::ItemStruct) -> proc_macro2::TokenStream {
  let mut api_struct = orig_struct.clone();
  api_struct.vis = parse_quote!();
- api_struct.attrs.clear();
+ api_struct.attrs = api_struct.attrs.into_iter().filter(|attr| attr.path.is_ident("doc")).collect();
  for field in &mut api_struct.fields {
   field.vis = parse_quote!();
-  field.attrs.clear();
+  field.attrs = field.attrs.clone().into_iter().filter(|attr| attr.path.is_ident("doc")).collect();
  }
 
  let lockfile = std::fs::File::create(std::env::temp_dir().join("turbocharger.lock")).unwrap();
@@ -142,6 +142,7 @@ fn backend_struct(orig_struct: syn::ItemStruct) -> proc_macro2::TokenStream {
 fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
  let mut api_fn = orig_fn.clone();
  api_fn.vis = parse_quote!();
+ api_fn.attrs = api_fn.attrs.into_iter().filter(|attr| attr.path.is_ident("doc")).collect();
  api_fn.block = parse_quote!({});
 
  let lockfile = std::fs::File::create(std::env::temp_dir().join("turbocharger.lock")).unwrap();
