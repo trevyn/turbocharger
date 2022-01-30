@@ -252,7 +252,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
    while let Some(result) = stream.next().await {
     let response = super::#resp {
      txid: self.txid,
-     result
+     result: result.clone()
     };
     sender(::turbocharger::bincode::serialize(&response).unwrap());
    }
@@ -313,9 +313,9 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
     tx.set_sender(Box::new(move |response| {
      let #resp { result, .. } =
       ::turbocharger::bincode::deserialize(&response).unwrap();
-     value.lock().unwrap().replace(result);
+     value.lock().unwrap().replace(result.clone());
      for subscription in subscriptions.lock().unwrap().iter() {
-      subscription.call1(&JsValue::null(), &result.into()).ok();
+      subscription.call1(&JsValue::null(), &result.clone().into()).ok();
      }
     }));
     store
