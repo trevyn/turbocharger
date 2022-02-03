@@ -247,14 +247,28 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
  let executebody = match &stream_inner_ty {
   Some(_ty) => quote! {
    use ::turbocharger::futures::stream::StreamExt;
+   use ::turbocharger::stream_cancel::StreamExt as OtherStreamExt;
    let stream = super::#orig_fn_ident(#( self.params. #tuple_indexes .clone() ),*);
    ::turbocharger::futures::pin_mut!(stream);
-   while let Some(result) = stream.next().await {
-    let response = super::#resp {
-     txid: self.txid,
-     result: result.clone()
-    };
-    sender(::turbocharger::bincode::serialize(&response).unwrap());
+
+   if let Some(tripwire) = tripwire {
+    let mut incoming = stream.take_until_if(tripwire);
+    while let Some(result) = incoming.next().await {
+     let response = super::#resp {
+      txid: self.txid,
+      result: result.clone()
+     };
+     sender(::turbocharger::bincode::serialize(&response).unwrap());
+    }
+   }
+   else {
+    while let Some(result) = stream.next().await {
+     let response = super::#resp {
+      txid: self.txid,
+      result: result.clone()
+     };
+     sender(::turbocharger::bincode::serialize(&response).unwrap());
+    }
    }
   },
   None => quote! {
@@ -363,7 +377,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
    #[::turbocharger::typetag::serde(name = #orig_fn_string)]
    #[::turbocharger::async_trait]
    impl ::turbocharger::RPC for super::#dispatch {
-    async fn execute(&self, sender: Box<dyn Fn(Vec<u8>) + Send>) {
+    async fn execute(&self, sender: Box<dyn Fn(Vec<u8>) + Send>, tripwire: Option<::turbocharger::stream_cancel::Tripwire>) {
      #executebody
     }
    }
