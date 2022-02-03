@@ -12,7 +12,7 @@ pub use {bincode, futures, serde};
 
 #[server_only]
 #[doc(hidden)]
-pub use {async_stream, async_trait::async_trait, typetag};
+pub use {async_stream, async_trait::async_trait, stream_cancel, typetag};
 
 #[cfg(target_arch = "wasm32")]
 #[doc(hidden)]
@@ -23,7 +23,11 @@ pub use js_sys;
 #[typetag::serde]
 #[async_trait]
 pub trait RPC: Send + Sync {
- async fn execute(&self, sender: Box<dyn Fn(Vec<u8>) + Send>);
+ async fn execute(
+  &self,
+  sender: Box<dyn Fn(Vec<u8>) + Send>,
+  tripwire: Option<stream_cancel::Tripwire>,
+ ) -> ();
 }
 
 struct Globals {
@@ -175,7 +179,7 @@ pub async fn spawn_udp_server(port: u16) -> Result<(), Box<dyn std::error::Error
         send_socket_cloned.send_to(&response, peer).await.unwrap();
        });
       });
-      target_func.execute(sender).await;
+      target_func.execute(sender, None).await;
      });
     }
     txid => {
