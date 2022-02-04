@@ -34,7 +34,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-11.0]
+        os: [ubuntu-latest, macos-latest]
         rust: [1.56, stable, beta, nightly]
 #              1.56 is minimum rustc version
 
@@ -64,7 +64,7 @@ jobs:
   publish:
     needs: [checklinks, test]
     runs-on: ubuntu-latest
-    if: ${{ contains(github.event.head_commit.message, 'turbocharger@') && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    if: ${{ startsWith(github.event.head_commit.message, 'turbocharger@') && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
 
     steps:
       - uses: actions/checkout@v2

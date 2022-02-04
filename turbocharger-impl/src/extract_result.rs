@@ -1,4 +1,4 @@
-pub fn inner_ty(orig_fn_ret_ty: syn::Type) -> Option<syn::GenericArgument> {
+pub fn inner_ty(orig_fn_ret_ty: syn::Type) -> Option<syn::Type> {
  let typepath = match orig_fn_ret_ty {
   syn::Type::Path(typepath) => Some(typepath),
   _ => None,
@@ -28,7 +28,11 @@ pub fn inner_ty(orig_fn_ret_ty: syn::Type) -> Option<syn::GenericArgument> {
   Some(syn::AngleBracketedGenericArguments { args, .. }) => Some(args),
   _ => None,
  };
- args.map(|args| args.into_iter().next()).flatten()
+ let genericargument = args.map(|args| args.into_iter().next()).flatten();
+ match genericargument {
+  Some(syn::GenericArgument::Type(ty)) => Some(ty),
+  _ => None,
+ }
 }
 
 #[cfg(test)]
@@ -39,7 +43,7 @@ mod tests {
  fn test_extract_result() {
   assert_eq!(
    inner_ty(syn::parse_str::<syn::Type>("Result<String, JsValue>").unwrap()),
-   Some(syn::parse_str::<syn::GenericArgument>("String").unwrap())
+   Some(syn::parse_str::<syn::Type>("String").unwrap())
   );
   assert_eq!(inner_ty(syn::parse_str::<syn::Type>("String").unwrap()), None);
  }

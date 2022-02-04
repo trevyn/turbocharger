@@ -7,8 +7,8 @@
 mod extract_result;
 mod extract_stream;
 use proc_macro_error::{abort, proc_macro_error};
-use quote::{format_ident, quote};
-use syn::parse_quote;
+use quote::{format_ident, quote, quote_spanned};
+use syn::{parse_quote, spanned::Spanned};
 
 /// Apply this to an item to make it available on the server target only.
 ///
@@ -183,32 +183,17 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
   syn::ReturnType::Default => None,
   syn::ReturnType::Type(_, path) => Some(*path),
  };
- let result_inner_ty = orig_fn_ret_ty.clone().map(extract_result::inner_ty).flatten();
  let stream_inner_ty = orig_fn_ret_ty.clone().map(extract_stream::inner_ty).flatten();
-
- let orig_fn_ret_ty = match (&orig_fn_ret_ty, &stream_inner_ty) {
-  (Some(ty), None) => quote! { #ty },
-  (Some(_), Some(ty)) => quote! { impl ::turbocharger::futures::stream::Stream<Item = #ty > },
-  (None, None) => quote! { () },
-  _ => abort!(orig_fn_ret_ty, "Really confused about this return type!"),
+ let result_inner_ty =
+  if stream_inner_ty.is_some() { stream_inner_ty.clone() } else { orig_fn_ret_ty.clone() }
+   .map(extract_result::inner_ty)
+   .flatten();
+ let store_value_ty = if result_inner_ty.is_some() {
+  quote! { Result<#result_inner_ty, JsValue> }
+ } else {
+  quote! { #stream_inner_ty }
  };
 
- let mut orig_fn = orig_fn;
-
- orig_fn.sig.output = syn::parse2(quote! { -> #orig_fn_ret_ty }).unwrap();
-
- let bindgen_ret_ty = match (&result_inner_ty, &stream_inner_ty) {
-  (Some(ty), None) => quote! { Result<#ty, JsValue> },
-  (None, Some(_ty)) => quote! { #store_name },
-  (None, None) => quote! { #orig_fn_ret_ty },
-  _ => abort!(orig_fn_ret_ty, "Only one of `Result` or `Stream` is allowed."),
- };
- let serialize_ret_ty = match (&result_inner_ty, &stream_inner_ty) {
-  (Some(ty), None) => quote! { Result<#ty, String> },
-  (None, Some(ty)) => quote! { #ty },
-  (None, None) => quote! { #orig_fn_ret_ty },
-  _ => abort!(orig_fn_ret_ty, "Only one of `Result` or `Stream` is allowed."),
- };
  let maybe_map_err_string = match &result_inner_ty {
   Some(_) => quote! { .map_err(|e| e.to_string()) },
   None => quote! {},
@@ -216,6 +201,69 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
  let maybe_map_err_jsvalue = match &result_inner_ty {
   Some(_) => quote! { .map_err(|e| ::turbocharger::js_sys::Error::new(&e).into()) },
   None => quote! {},
+ };
+
+ let send_value_to_subscription = if result_inner_ty.is_some() {
+  quote! {
+   if let Some(value) = self.value.lock().unwrap().clone() {
+    let promise: ::turbocharger::js_sys::Promise = match value.clone() {
+     Ok(t) => ::turbocharger::js_sys::Promise::resolve(&t.into()).into(),
+     Err(e) => ::turbocharger::js_sys::Promise::reject(&e.into()).into(),
+    };
+    subscription.call1(&JsValue::null(), &promise).ok();
+   }
+  }
+ } else {
+  quote! {
+   if let Some(value) = self.value.lock().unwrap().clone() {
+    subscription.call1(&JsValue::null(), &value.into()).ok();
+   }
+  }
+ };
+
+ let send_value_to_subscriptions = if result_inner_ty.is_some() {
+  quote! {
+   if let Some(value) = value.lock().unwrap().clone() {
+    let promise: ::turbocharger::js_sys::Promise = match value.clone() {
+     Ok(t) => ::turbocharger::js_sys::Promise::resolve(&t.into()).into(),
+     Err(e) => ::turbocharger::js_sys::Promise::reject(&e.into()).into(),
+    };
+    for subscription in subscriptions.lock().unwrap().iter() {
+     subscription.call1(&JsValue::null(), &promise).ok();
+    }
+  }
+  }
+ } else {
+  quote! {
+   if let Some(value) = value.lock().unwrap().clone() {
+    for subscription in subscriptions.lock().unwrap().iter() {
+     subscription.call1(&JsValue::null(), &value.clone().into()).ok();
+    }
+   }
+  }
+ };
+
+ let orig_fn_ret_ty = match (&orig_fn_ret_ty, &stream_inner_ty) {
+  (Some(ty), None) => quote_spanned! {ty.span()=> #ty },
+  (Some(_), Some(ty)) => {
+   quote_spanned! {ty.span()=> impl ::turbocharger::futures::stream::Stream<Item = #ty > }
+  }
+  (None, _) => quote! { () },
+ };
+
+ let mut orig_fn = orig_fn;
+
+ orig_fn.sig.output = parse_quote! { -> #orig_fn_ret_ty };
+
+ let bindgen_ret_ty = match (&stream_inner_ty, &result_inner_ty) {
+  (None, Some(ty)) => quote! { Result<#ty, JsValue> },
+  (Some(_ty), _) => quote! { #store_name },
+  (None, None) => quote! { #orig_fn_ret_ty },
+ };
+ let serialize_ret_ty = match (&stream_inner_ty, &result_inner_ty) {
+  (_, Some(ty)) => quote! { Result<#ty, String> },
+  (Some(ty), None) => quote! { #ty },
+  (None, None) => quote! { #orig_fn_ret_ty },
  };
 
  let tuple_indexes = (0..orig_fn_params.len()).map(syn::Index::from);
@@ -256,7 +304,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
     while let Some(result) = incoming.next().await {
      let response = super::#resp {
       txid: self.txid,
-      result: result.clone()
+      result: result #maybe_map_err_string .clone()
      };
      sender(::turbocharger::bincode::serialize(&response).unwrap());
     }
@@ -265,7 +313,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
     while let Some(result) = stream.next().await {
      let response = super::#resp {
       txid: self.txid,
-      result: result.clone()
+      result: result #maybe_map_err_string .clone()
      };
      sender(::turbocharger::bincode::serialize(&response).unwrap());
     }
@@ -282,13 +330,13 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
  };
 
  let wasm_side = match &stream_inner_ty {
-  Some(ty) => quote! {
+  Some(_ty) => quote! {
    #[cfg(target_arch = "wasm32")]
    #[allow(non_camel_case_types)]
    #[wasm_bindgen]
    #[derive(Default)]
    pub struct #store_name {
-    value: std::sync::Arc<std::sync::Mutex<Option< #ty >>>,
+    value: std::sync::Arc<std::sync::Mutex<Option< #store_value_ty >>>,
     subscriptions: std::sync::Arc<std::sync::Mutex<Vec<::turbocharger::js_sys::Function>>>,
    }
 
@@ -297,9 +345,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
    impl #store_name {
     #[wasm_bindgen]
     pub fn subscribe(&mut self, subscription: ::turbocharger::js_sys::Function) -> JsValue {
-     if let Some(value) = self.value.lock().unwrap().clone() {
-      subscription.call1(&JsValue::null(), &value.into()).ok();
-     }
+     #send_value_to_subscription
      self.subscriptions.lock().unwrap().push(subscription);
 
      Closure::wrap(Box::new(move || {
@@ -327,10 +373,8 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
     tx.set_sender(Box::new(move |response| {
      let #resp { result, .. } =
       ::turbocharger::bincode::deserialize(&response).unwrap();
-     value.lock().unwrap().replace(result.clone());
-     for subscription in subscriptions.lock().unwrap().iter() {
-      subscription.call1(&JsValue::null(), &result.clone().into()).ok();
-     }
+     value.lock().unwrap().replace(result.clone() #maybe_map_err_jsvalue );
+     #send_value_to_subscriptions
     }));
     store
    }
