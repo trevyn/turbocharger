@@ -183,11 +183,10 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
   syn::ReturnType::Default => None,
   syn::ReturnType::Type(_, path) => Some(*path),
  };
- let stream_inner_ty = orig_fn_ret_ty.clone().map(extract_stream::inner_ty).flatten();
+ let stream_inner_ty = orig_fn_ret_ty.clone().and_then(extract_stream::inner_ty);
  let result_inner_ty =
   if stream_inner_ty.is_some() { stream_inner_ty.clone() } else { orig_fn_ret_ty.clone() }
-   .map(extract_result::inner_ty)
-   .flatten();
+   .and_then(extract_result::inner_ty);
  let store_value_ty = if result_inner_ty.is_some() {
   quote! { Result<#result_inner_ty, JsValue> }
  } else {
