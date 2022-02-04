@@ -1,4 +1,4 @@
-pub fn inner_ty(orig_fn_ret_ty: syn::Type) -> Option<syn::Ident> {
+pub fn inner_ty(orig_fn_ret_ty: syn::Type) -> Option<syn::Type> {
  let impltrait = match orig_fn_ret_ty {
   syn::Type::ImplTrait(impltrait) => Some(impltrait),
   _ => return None,
@@ -35,18 +35,8 @@ pub fn inner_ty(orig_fn_ret_ty: syn::Type) -> Option<syn::Ident> {
   _ => return None,
  };
  let syn::Binding { ty, .. } = binding.unwrap();
- let path = match ty {
-  syn::Type::Path(path) => Some(path),
-  _ => return None,
- };
- let typepath = match path {
-  Some(syn::TypePath { path, .. }) => Some(path),
-  _ => return None,
- };
- let syn::Path { segments, .. } = typepath.unwrap();
- let segment = segments[0].clone();
 
- Some(segment.ident)
+ Some(ty)
 }
 
 #[cfg(test)]
@@ -57,7 +47,15 @@ mod tests {
  fn test_extract_stream() {
   assert_eq!(
    inner_ty(syn::parse_str::<syn::Type>("impl Stream<Item = u32>").unwrap()),
-   Some(syn::parse_str::<syn::Ident>("u32").unwrap())
+   Some(syn::parse_str::<syn::Type>("u32").unwrap())
+  );
+  assert_eq!(
+   inner_ty(syn::parse_str::<syn::Type>("impl Stream<Item = Result<i32, anyhow::Error>>").unwrap()),
+   Some(syn::parse_str::<syn::Type>("Result<i32, anyhow::Error>").unwrap())
+  );
+  assert_eq!(
+   inner_ty(syn::parse_str::<syn::Type>("impl Stream<Item = anyhow::Result<i32>>").unwrap()),
+   Some(syn::parse_str::<syn::Type>("anyhow::Result<i32>").unwrap())
   );
   assert_eq!(inner_ty(syn::parse_str::<syn::Type>("u32").unwrap()), None);
  }
