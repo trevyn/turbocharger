@@ -28,6 +28,7 @@ web-sys = {version = "0.3", features = ["Location", "Window"]}
 ws_stream_wasm = "0.7"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+acme-lib = {version = "0.8", optional = true}
 async-stream = "0.3"
 async-trait = "0.1"
 axum = {version = "0.4", features = ["ws", "headers", "http2"], optional = true}
@@ -40,8 +41,10 @@ stream-cancel = "0.8"
 tokio = "1"
 tokio-rustls = {version = "0.23", optional = true}
 tokio-stream = {version = "0.1", features = ["net"]}
+tracked = "0.1"
+turbosql = {version = "0.4", optional = true}
 typetag = "0.1"
 
 [features]
-axum_server = ["rust-embed", "mime_guess", "axum", "tokio-rustls", "rustls-pemfile", "hyper"]
+axum_server = ["rust-embed", "mime_guess", "axum", "tokio-rustls", "rustls-pemfile", "hyper", "acme-lib", "turbosql"]
 full = ["axum_server"]

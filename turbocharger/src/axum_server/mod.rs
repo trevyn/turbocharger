@@ -28,12 +28,12 @@ pub async fn serve<A: 'static + RustEmbed>(addr: &SocketAddr) {
 }
 
 /// Convenience function to run a full server with static files from `rust_embed` and the Turbocharger WebSocket.
-pub async fn serve_tls<A: 'static + RustEmbed>(addr: &SocketAddr, key: &str, cert: &str) {
+pub async fn serve_tls<A: 'static + RustEmbed>(addr: &SocketAddr) {
  let app = Router::new()
   .route("/turbocharger_socket", get(ws_handler))
   .fallback(rust_embed_handler::<A>.into_service());
 
- tls::serve(addr, key, cert, app).await.unwrap();
+ tls::serve(addr, app).await.unwrap();
 }
 
 /// Axum handler for serving static files from rust_embed.
@@ -116,5 +116,5 @@ async fn handle_socket(ws: WebSocket) {
   });
  }
 
- log::info!("accept_connection completed")
+ log::info!("websocket disconnected")
 }
