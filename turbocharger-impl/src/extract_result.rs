@@ -28,7 +28,7 @@ pub fn inner_ty(orig_fn_ret_ty: syn::Type) -> Option<syn::Type> {
   Some(syn::AngleBracketedGenericArguments { args, .. }) => Some(args),
   _ => None,
  };
- let genericargument = args.map(|args| args.into_iter().next()).flatten();
+ let genericargument = args.and_then(|args| args.into_iter().next());
  match genericargument {
   Some(syn::GenericArgument::Type(ty)) => Some(ty),
   _ => None,
