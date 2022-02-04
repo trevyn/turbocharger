@@ -61,14 +61,18 @@ pub async fn serve(addr: &SocketAddr, app: Router) -> Result<(), Box<dyn std::er
 
   let handle = tokio::runtime::Handle::current();
 
-  tokio::task::spawn_blocking(move || {
-   handle.block_on(async move {
-    log::warn!("accepting connection");
-    if let Ok(stream) = acceptor.accept(stream).await {
-     log::warn!("accepted connection");
-     hyper::server::conn::Http::new().serve_connection(stream, app).with_upgrades().await.ok();
-    }
+  tokio::spawn(async move {
+   tokio::task::spawn_blocking(move || {
+    handle.block_on(async move {
+     log::warn!("accepting connection");
+     if let Ok(stream) = acceptor.accept(stream).await {
+      log::warn!("accepted connection");
+      hyper::server::conn::Http::new().serve_connection(stream, app).with_upgrades().await.ok();
+     }
+    })
    })
+   .await
+   .ok();
   });
 
   // tokio::spawn(async move {
