@@ -47,7 +47,7 @@ pub async fn serve(addr: &SocketAddr, app: Router) -> Result<(), Box<dyn std::er
  let mut config = rustls::ServerConfig::builder()
   .with_safe_defaults()
   .with_no_client_auth()
-  .with_cert_resolver(Arc::new(Resolver));
+  .with_cert_resolver(Arc::new(Resolver(tokio::runtime::Handle::current())));
 
  config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
 
@@ -67,14 +67,14 @@ pub async fn serve(addr: &SocketAddr, app: Router) -> Result<(), Box<dyn std::er
  }
 }
 
-struct Resolver;
+struct Resolver(tokio::runtime::Handle);
 
 impl rustls::server::ResolvesServerCert for Resolver {
  fn resolve(
   &self,
   client_hello: rustls::server::ClientHello<'_>,
  ) -> Option<Arc<rustls::sign::CertifiedKey>> {
-  match resolve_cert(&client_hello.server_name()?.to_ascii_lowercase()) {
+  match resolve_cert(self.0.clone(), &client_hello.server_name()?.to_ascii_lowercase()) {
    Ok(cert) => Some(Arc::new(cert)),
    Err(e) => {
     log::error!("{}", e);
@@ -85,9 +85,12 @@ impl rustls::server::ResolvesServerCert for Resolver {
 }
 
 #[tracked]
-fn resolve_cert(server_name: &str) -> tracked::Result<rustls::sign::CertifiedKey> {
+fn resolve_cert(
+ handle: tokio::runtime::Handle,
+ server_name: &str,
+) -> tracked::Result<rustls::sign::CertifiedKey> {
  if select!(Option<_turbocharger_tls_cert> "WHERE server_name = ?", server_name)?.is_none() {
-  let cert = request_cert(server_name)?;
+  let cert = request_cert(handle, server_name)?;
   _turbocharger_tls_cert {
    rowid: None,
    server_name: Some(server_name.into()),
@@ -105,7 +108,10 @@ fn resolve_cert(server_name: &str) -> tracked::Result<rustls::sign::CertifiedKey
 }
 
 #[tracked]
-fn request_cert(server_name: &str) -> tracked::Result<acme_lib::Certificate> {
+fn request_cert(
+ handle: tokio::runtime::Handle,
+ server_name: &str,
+) -> tracked::Result<acme_lib::Certificate> {
  log::info!("requesting new TLS cert for {}", server_name);
  eprintln!("requesting new TLS cert for {}", server_name);
 
@@ -134,7 +140,9 @@ fn request_cert(server_name: &str) -> tracked::Result<acme_lib::Certificate> {
    log::info!("served proof");
    proof
   }
-  let server = tokio::spawn(async move {
+  let server = handle.spawn(async move {
+   log::warn!("in spawn, path = {}", path);
+
    axum::Server::bind(&std::net::SocketAddr::from(([0, 0, 0, 0], 80)))
     .serve(app.into_make_service())
     .await
