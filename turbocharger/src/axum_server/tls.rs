@@ -153,7 +153,7 @@ fn request_cert(
    proof
   }
   let server = handle.spawn(async move {
-   log::warn!("in spawn, path = {}", path);
+   log::info!("proof server spawned, path = {}", path);
 
    axum::Server::bind(&std::net::SocketAddr::from(([0, 0, 0, 0], 80)))
     .serve(app.into_make_service())
