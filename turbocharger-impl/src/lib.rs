@@ -228,15 +228,19 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
      Err(e) => ::turbocharger::js_sys::Promise::reject(&e.into()).into(),
     };
     for subscription in subscriptions.lock().unwrap().iter() {
-     subscription.call1(&JsValue::null(), &promise).ok();
+     if let Some(subscription) = subscription.lock().unwrap().as_ref() {
+      subscription.call1(&JsValue::null(), &promise).ok();
+     }
     }
-  }
+   }
   }
  } else {
   quote! {
    if let Some(value) = value.lock().unwrap().clone() {
     for subscription in subscriptions.lock().unwrap().iter() {
-     subscription.call1(&JsValue::null(), &value.clone().into()).ok();
+     if let Some(subscription) = subscription.lock().unwrap().as_ref() {
+      subscription.call1(&JsValue::null(), &value.clone().into()).ok();
+     }
     }
    }
   }
@@ -285,11 +289,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
   })
   .collect();
 
- let orig_fn_params_maybe_comma = if orig_fn_params.is_empty() {
-  quote! {}
- } else {
-  quote! { , }
- };
+ let orig_fn_params_maybe_comma = if orig_fn_params.is_empty() { quote!() } else { quote!( , ) };
 
  let executebody = match &stream_inner_ty {
   Some(_ty) => quote! {
@@ -333,10 +333,10 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
    #[cfg(target_arch = "wasm32")]
    #[allow(non_camel_case_types)]
    #[wasm_bindgen]
-   #[derive(Default)]
    pub struct #store_name {
+    req: std::sync::Arc<std::sync::Mutex<#req>>,
     value: std::sync::Arc<std::sync::Mutex<Option< #store_value_ty >>>,
-    subscriptions: std::sync::Arc<std::sync::Mutex<Vec<::turbocharger::js_sys::Function>>>,
+    subscriptions: std::sync::Arc<std::sync::Mutex<Vec<std::sync::Arc<std::sync::Mutex<Option<::turbocharger::js_sys::Function>>>>>>,
    }
 
    #[cfg(target_arch = "wasm32")]
@@ -344,11 +344,29 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
    impl #store_name {
     #[wasm_bindgen]
     pub fn subscribe(&mut self, subscription: ::turbocharger::js_sys::Function) -> JsValue {
+     if self.subscriptions.lock().unwrap().is_empty() {
+      let tx = ::turbocharger::_Transaction::new();
+      self.req.lock().unwrap().txid = tx.txid;
+      tx.send_ws(::turbocharger::bincode::serialize(&*self.req.lock().unwrap()).unwrap());
+      let subscriptions = self.subscriptions.clone();
+      let value = self.value.clone();
+      tx.set_sender(Box::new(move |response| {
+       let #resp { result, .. } =
+        ::turbocharger::bincode::deserialize(&response).unwrap();
+       value.lock().unwrap().replace(result.clone() #maybe_map_err_jsvalue );
+       #send_value_to_subscriptions
+      }));
+     }
+
      #send_value_to_subscription
-     self.subscriptions.lock().unwrap().push(subscription);
+     let subscription_handle = std::sync::Arc::new(std::sync::Mutex::new(Some(subscription)));
+     self.subscriptions.lock().unwrap().push(subscription_handle.clone());
+     let subscriptions = self.subscriptions.clone();
 
      Closure::wrap(Box::new(move || {
-      dbg!("unsubscribe called!!");
+      ::turbocharger::console_log!("unsubscribe called pre {:?}", subscriptions.lock().unwrap());
+      subscription_handle.lock().unwrap().take();
+      ::turbocharger::console_log!("unsubscribe called post {:?}", subscriptions.lock().unwrap());
      }) as Box<dyn Fn()>)
      .into_js_value()
     }
@@ -357,25 +375,17 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
    #[cfg(target_arch = "wasm32")]
    #[wasm_bindgen]
    pub fn #orig_fn_ident(#orig_fn_params) -> #bindgen_ret_ty {
-    let tx = ::turbocharger::_Transaction::new();
-    let req = ::turbocharger::bincode::serialize(&#req {
+    let req = #req {
      typetag_const_one: 1,
      dispatch_name: #orig_fn_string,
-     txid: tx.txid,
+     txid: 1,
      params: (#( #orig_fn_param_names ),* #orig_fn_params_maybe_comma),
-    })
-    .unwrap();
-    tx.send_ws(req);
-    let store = #store_name ::default();
-    let subscriptions = store.subscriptions.clone();
-    let value = store.value.clone();
-    tx.set_sender(Box::new(move |response| {
-     let #resp { result, .. } =
-      ::turbocharger::bincode::deserialize(&response).unwrap();
-     value.lock().unwrap().replace(result.clone() #maybe_map_err_jsvalue );
-     #send_value_to_subscriptions
-    }));
-    store
+    };
+    #store_name {
+     req: std::sync::Arc::new(std::sync::Mutex::new(req)),
+     value: std::sync::Arc::new(std::sync::Mutex::new(None)),
+     subscriptions: std::sync::Arc::new(std::sync::Mutex::new(Vec::new()))
+    }
    }
   },
   None => quote! {
