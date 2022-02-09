@@ -362,11 +362,17 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
      let subscription_handle = std::sync::Arc::new(std::sync::Mutex::new(Some(subscription)));
      self.subscriptions.lock().unwrap().push(subscription_handle.clone());
      let subscriptions = self.subscriptions.clone();
+     let req_clone = self.req.clone();
 
      Closure::wrap(Box::new(move || {
-      ::turbocharger::console_log!("unsubscribe called pre {:?}", subscriptions.lock().unwrap());
+      // ::turbocharger::console_log!("unsubscribe called pre {:?}", subscriptions.lock().unwrap());
       subscription_handle.lock().unwrap().take();
-      ::turbocharger::console_log!("unsubscribe called post {:?}", subscriptions.lock().unwrap());
+      subscriptions.lock().unwrap().retain(|s| { s.lock().unwrap().is_some() });
+      if subscriptions.lock().unwrap().is_empty() {
+       let tx = ::turbocharger::_Transaction::new();
+       tx.send_ws(::turbocharger::bincode::serialize(&*req_clone.lock().unwrap()).unwrap());
+      }
+      // ::turbocharger::console_log!("unsubscribe called post {:?}", subscriptions.lock().unwrap());
      }) as Box<dyn Fn()>)
      .into_js_value()
     }
@@ -432,6 +438,9 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
    impl ::turbocharger::RPC for super::#dispatch {
     async fn execute(&self, sender: Box<dyn Fn(Vec<u8>) + Send>, tripwire: Option<::turbocharger::stream_cancel::Tripwire>) {
      #executebody
+    }
+    fn txid(&self) -> i64 {
+     self.txid
     }
    }
   }

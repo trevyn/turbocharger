@@ -15,8 +15,12 @@ use axum::{
 };
 use futures::{SinkExt, StreamExt, TryFutureExt};
 use rust_embed::RustEmbed;
-use std::marker::PhantomData;
-use std::net::SocketAddr;
+use std::{
+ collections::HashMap,
+ marker::PhantomData,
+ net::SocketAddr,
+ sync::{Arc, Mutex},
+};
 
 /// Convenience function to run a full server with static files from `rust_embed` and the Turbocharger WebSocket.
 pub async fn serve<A: 'static + RustEmbed>(addr: &SocketAddr) {
@@ -83,7 +87,7 @@ async fn handle_socket(ws: WebSocket) {
  let (mut ws_tx, mut ws_rx) = ws.split();
  let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
  let mut rx = tokio_stream::wrappers::UnboundedReceiverStream::new(rx);
- let (_trigger, tripwire) = stream_cancel::Tripwire::new();
+ let triggers: Arc<Mutex<HashMap<i64, stream_cancel::Trigger>>> = Default::default();
 
  tokio::task::spawn(async move {
   while let Some(msg) = rx.next().await {
@@ -105,13 +109,20 @@ async fn handle_socket(ws: WebSocket) {
    }
   };
   let tx_clone = tx.clone();
-  let tripwire_clone = tripwire.clone();
+  let triggers_clone = triggers.clone();
   tokio::task::spawn(async move {
    let msg = msg.into_data();
    if !msg.is_empty() {
     let target_func: Box<dyn crate::RPC> = bincode::deserialize(&msg).unwrap();
-    let sender = Box::new(move |response| tx_clone.send(Message::Binary(response)).unwrap());
-    target_func.execute(sender, Some(tripwire_clone)).await;
+    let (trigger, tripwire) = stream_cancel::Tripwire::new();
+    let trigger = triggers_clone.lock().unwrap().insert(target_func.txid(), trigger);
+    std::mem::drop(triggers_clone);
+    if let Some(trigger) = trigger {
+     trigger.cancel();
+    } else {
+     let sender = Box::new(move |response| tx_clone.send(Message::Binary(response)).unwrap());
+     target_func.execute(sender, Some(tripwire)).await;
+    }
    }
   });
  }

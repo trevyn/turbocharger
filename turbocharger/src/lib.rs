@@ -28,6 +28,7 @@ pub trait RPC: Send + Sync {
   sender: Box<dyn Fn(Vec<u8>) + Send>,
   tripwire: Option<stream_cancel::Tripwire>,
  ) -> ();
+ fn txid(&self) -> i64;
 }
 
 struct Globals {
