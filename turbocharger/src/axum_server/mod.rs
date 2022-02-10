@@ -1,3 +1,4 @@
+#[cfg(feature = "tls")]
 mod tls;
 
 use axum::{
@@ -32,6 +33,7 @@ pub async fn serve<A: 'static + RustEmbed>(addr: &SocketAddr) {
 }
 
 /// Convenience function to run a full server with static files from `rust_embed` and the Turbocharger WebSocket.
+#[cfg(feature = "tls")]
 pub async fn serve_tls<A: 'static + RustEmbed>(addr: &SocketAddr) {
  let app = Router::new()
   .route("/turbocharger_socket", get(ws_handler))
