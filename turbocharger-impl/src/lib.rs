@@ -389,8 +389,8 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
     };
     #store_name {
      req: std::sync::Arc::new(std::sync::Mutex::new(req)),
-     value: std::sync::Arc::new(std::sync::Mutex::new(None)),
-     subscriptions: std::sync::Arc::new(std::sync::Mutex::new(Vec::new()))
+     value: Default::default(),
+     subscriptions: Default::default()
     }
    }
   },
