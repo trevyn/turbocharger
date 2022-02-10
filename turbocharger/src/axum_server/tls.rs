@@ -3,7 +3,6 @@
 // and
 // https://github.com/tokio-rs/axum/blob/3b579c721504d4d64de74b414f39c3dfb33b923a/examples/tls_rustls.rs
 
-use axum::routing::Router;
 use std::io::BufReader;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -43,7 +42,8 @@ impl _turbocharger_tls_cert {
  }
 }
 
-pub async fn serve(addr: &SocketAddr, app: Router) -> Result<(), Box<dyn std::error::Error>> {
+#[tracked]
+pub async fn serve(addr: &SocketAddr, app: axum::routing::Router) -> tracked::Result<()> {
  let mut config = rustls::ServerConfig::builder()
   .with_safe_defaults()
   .with_no_client_auth()
@@ -59,23 +59,13 @@ pub async fn serve(addr: &SocketAddr, app: Router) -> Result<(), Box<dyn std::er
   let acceptor = acceptor.clone();
   let app = app.clone();
 
-  let handle = tokio::runtime::Handle::current();
-
   tokio::task::spawn_blocking(move || {
-   handle.block_on(async move {
-    log::warn!("accepting connection");
+   tokio::runtime::Handle::current().block_on(async move {
     if let Ok(stream) = acceptor.accept(stream).await {
-     log::warn!("accepted connection");
      hyper::server::conn::Http::new().serve_connection(stream, app).with_upgrades().await.ok();
     }
    })
   });
-
-  // tokio::spawn(async move {
-  //  if let Ok(stream) = acceptor.accept(stream).await {
-  //   hyper::server::conn::Http::new().serve_connection(stream, app).with_upgrades().await.ok();
-  //  }
-  // });
  }
 }
 
@@ -86,7 +76,7 @@ impl rustls::server::ResolvesServerCert for Resolver {
   &self,
   client_hello: rustls::server::ClientHello<'_>,
  ) -> Option<Arc<rustls::sign::CertifiedKey>> {
-  match resolve_cert(self.0.clone(), &client_hello.server_name()?.to_ascii_lowercase()) {
+  match resolve_cert(&self.0, &client_hello.server_name()?.to_ascii_lowercase()) {
    Ok(cert) => Some(Arc::new(cert)),
    Err(e) => {
     log::error!("{}", e);
@@ -98,7 +88,7 @@ impl rustls::server::ResolvesServerCert for Resolver {
 
 #[tracked]
 fn resolve_cert(
- handle: tokio::runtime::Handle,
+ handle: &tokio::runtime::Handle,
  server_name: &str,
 ) -> tracked::Result<rustls::sign::CertifiedKey> {
  if select!(Option<_turbocharger_tls_cert> "WHERE server_name = ?", server_name)?.is_none() {
@@ -121,11 +111,10 @@ fn resolve_cert(
 
 #[tracked]
 fn request_cert(
- handle: tokio::runtime::Handle,
+ handle: &tokio::runtime::Handle,
  server_name: &str,
 ) -> tracked::Result<acme_lib::Certificate> {
- log::info!("requesting new TLS cert for {}", server_name);
- eprintln!("requesting new TLS cert for {}", server_name);
+ log::warn!("requesting new TLS cert for {}", server_name);
 
  let url = acme_lib::DirectoryUrl::LetsEncrypt;
  let persist = acme_lib::persist::MemoryPersist::new();
@@ -154,7 +143,6 @@ fn request_cert(
   }
   let server = handle.spawn(async move {
    log::info!("proof server spawned, path = {}", path);
-
    axum::Server::bind(&std::net::SocketAddr::from(([0, 0, 0, 0], 80)))
     .serve(app.into_make_service())
     .await
@@ -164,10 +152,8 @@ fn request_cert(
   log::info!("confirming ownership");
   chall.validate(1000)?;
   log::info!("updating state");
-
   ord_new.refresh()?;
   log::info!("finalizing order");
-
   server.abort();
  };
 
