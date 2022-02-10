@@ -17,6 +17,7 @@ use turbosql::{select, Turbosql};
 struct _turbocharger_tls_cert {
  rowid: Option<i64>,
  server_name: Option<String>,
+ issue_time: Option<i64>,
  cert: Option<String>,
  key: Option<String>,
 }
@@ -96,6 +97,10 @@ fn resolve_cert(
   _turbocharger_tls_cert {
    rowid: None,
    server_name: Some(server_name.into()),
+   issue_time: Some(
+    std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH)?.as_secs()
+     as i64,
+   ),
    cert: Some(cert.certificate().to_string()),
    key: Some(cert.private_key().to_string()),
   }

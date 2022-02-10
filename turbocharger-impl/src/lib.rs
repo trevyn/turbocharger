@@ -365,14 +365,12 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
      let req_clone = self.req.clone();
 
      Closure::wrap(Box::new(move || {
-      // ::turbocharger::console_log!("unsubscribe called pre {:?}", subscriptions.lock().unwrap());
       subscription_handle.lock().unwrap().take();
       subscriptions.lock().unwrap().retain(|s| { s.lock().unwrap().is_some() });
       if subscriptions.lock().unwrap().is_empty() {
        let tx = ::turbocharger::_Transaction::new();
        tx.send_ws(::turbocharger::bincode::serialize(&*req_clone.lock().unwrap()).unwrap());
       }
-      // ::turbocharger::console_log!("unsubscribe called post {:?}", subscriptions.lock().unwrap());
      }) as Box<dyn Fn()>)
      .into_js_value()
     }
