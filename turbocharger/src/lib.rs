@@ -97,7 +97,11 @@ mod axum_server;
 
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(feature = "axum_server")]
-pub use axum_server::{serve, serve_tls};
+pub use axum_server::serve;
+
+#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(feature = "tls", feature = "axum_server"))]
+pub use axum_server::serve_tls;
 
 #[doc(hidden)]
 pub struct _Transaction {

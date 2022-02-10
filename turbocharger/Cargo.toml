@@ -36,7 +36,7 @@ hyper = {version = "0.14", optional = true}
 log = "0.4"
 mime_guess = {version = "2", optional = true}
 rust-embed = {version = "6", optional = true}
-rustls-pemfile = {version = "0.2", optional = true}
+rustls-pemfile = {version = "0.3", optional = true}
 stream-cancel = "0.8"
 tokio = "1"
 tokio-rustls = {version = "0.23", optional = true}
@@ -46,5 +46,6 @@ turbosql = {version = "0.4", optional = true}
 typetag = "0.1"
 
 [features]
-axum_server = ["rust-embed", "mime_guess", "axum", "tokio-rustls", "rustls-pemfile", "hyper", "acme-lib", "turbosql"]
-full = ["axum_server"]
+axum_server = ["rust-embed", "mime_guess", "axum"]
+full = ["axum_server", "tls"]
+tls = ["tokio-rustls", "rustls-pemfile", "hyper", "acme-lib", "turbosql"]
