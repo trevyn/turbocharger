@@ -123,7 +123,7 @@ async fn handle_socket(ws: WebSocket) {
      trigger.cancel();
     } else {
      let sender = Box::new(move |response| tx_clone.send(Message::Binary(response)).unwrap());
-     target_func.execute(sender, Some(tripwire)).await;
+     target_func.execute(sender, Some(tripwire), None).await;
     }
    }
   });
