@@ -25,21 +25,21 @@ jobs:
         run: exit ${{ steps.lychee.outputs.exit_code }}
 
   test:
-    name: test ${{ matrix.os }} rust ${{ matrix.rust }}
+    name: test rust ${{ matrix.rust }} ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
 
     strategy:
       fail-fast: false
       matrix:
-        branch: [main, axum]
+        # branch: [main, axum]
         os: [ubuntu-latest, macos-latest]
         rust: [1.56, stable, beta, nightly-2022-02-08]
 #              1.56 is minimum rustc version
 
     steps:
       - uses: actions/checkout@v2
-        with:
-          ref: ${{ matrix.branch }}
+        # with:
+        #   ref: ${{ matrix.branch }}
 
       - uses: hecrj/setup-rust-action@v1
         with:
