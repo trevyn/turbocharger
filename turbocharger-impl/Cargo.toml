@@ -18,6 +18,8 @@ proc-macro-error = "1"
 proc-macro2 = "1"
 quote = "1"
 syn = {version = "1", features = ["extra-traits", "full"]}
+todo-or-die = {version = "0.1", features = ["crate"], optional = true}
 
 [features]
 full = []
+test = ["todo-or-die"]

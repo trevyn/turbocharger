@@ -230,7 +230,7 @@ async fn ensure_ws_connected() {
   let (channel_tx, mut channel_rx) = futures::channel::mpsc::unbounded();
   g.channel_tx = Some(channel_tx);
 
-  std::mem::drop(g);
+  drop(g);
 
   tc_console_log!("connecting to {}", socket_url);
 

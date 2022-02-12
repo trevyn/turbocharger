@@ -60,6 +60,8 @@ where
 {
  fn into_response(self) -> Response {
   let path = self.0.into();
+  #[cfg(debug_assertions)]
+  std::thread::sleep(std::time::Duration::from_millis(50)); // this makes snowpack build --watch --hmr more reliable
   match A::get(path.as_str()) {
    Some(content) => {
     let body = boxed(Full::from(content.data));
@@ -113,12 +115,18 @@ async fn handle_socket(ws: WebSocket) {
   let tx_clone = tx.clone();
   let triggers_clone = triggers.clone();
   tokio::task::spawn(async move {
-   let msg = msg.into_data();
-   if !msg.is_empty() {
-    let target_func: Box<dyn crate::RPC> = bincode::deserialize(&msg).unwrap();
+   let data = msg.clone().into_data();
+   if !data.is_empty() {
+    let target_func: Box<dyn crate::RPC> = match bincode::deserialize(&data) {
+     Ok(target_func) => target_func,
+     Err(e) => {
+      log::error!("websocket deserialize error: {} {:?}", e, msg);
+      return;
+     }
+    };
     let (trigger, tripwire) = stream_cancel::Tripwire::new();
     let trigger = triggers_clone.lock().unwrap().insert(target_func.txid(), trigger);
-    std::mem::drop(triggers_clone);
+    drop(triggers_clone);
     if let Some(trigger) = trigger {
      trigger.cancel();
     } else {
