@@ -1,7 +1,8 @@
 {
  // "rust-analyzer.cargo.target": "wasm32-unknown-unknown",
  "rust-analyzer.checkOnSave.command": "clippy",
- "rust-analyzer.cargo.features": ["full"],
+ "rust-analyzer.checkOnSave.features": ["full", "test"],
+ "rust-analyzer.cargo.features": ["full", "test"],
  "css.lint.unknownAtRules": "ignore",
  "editor.tabSize": 1,
  "editor.detectIndentation": false

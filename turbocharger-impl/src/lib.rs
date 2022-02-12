@@ -4,6 +4,13 @@
 
 #![forbid(unsafe_code)]
 
+#[cfg(feature = "todo-or-die")]
+todo_or_die::crates_io!("bincode", ">=2");
+#[cfg(feature = "todo-or-die")]
+todo_or_die::crates_io!("axum", ">=0.5");
+#[cfg(feature = "todo-or-die")]
+todo_or_die::crates_io!("turbosql", ">=0.5");
+
 mod extract_result;
 mod extract_stream;
 use proc_macro_error::{abort, proc_macro_error};

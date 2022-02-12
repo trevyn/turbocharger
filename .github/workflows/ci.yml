@@ -31,12 +31,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        branch: [main, axum]
         os: [ubuntu-latest, macos-latest]
         rust: [1.56, stable, beta, nightly-2022-02-08]
 #              1.56 is minimum rustc version
 
     steps:
       - uses: actions/checkout@v2
+        with:
+          ref: ${{ matrix.branch }}
 
       - uses: hecrj/setup-rust-action@v1
         with:
@@ -48,6 +51,10 @@ jobs:
 
       - run: git submodule update --init
       - run: git submodule update --remote
+
+      - name: cargo test turbocharger-impl
+        run: cargo test --features "test" -- --nocapture
+        working-directory: 'turbocharger-impl'
 
       - run: npm run build
         working-directory: 'turbocharger-template'
