@@ -24,7 +24,6 @@ struct _turbocharger_tls_cert {
 
 impl _turbocharger_tls_cert {
  #[tracked]
- #[allow(clippy::needless_question_mark)]
  fn parsed_cert(&self) -> tracked::Result<Vec<Certificate>> {
   Ok(
    rustls_pemfile::certs(&mut BufReader::new(self.cert.as_ref()?.as_bytes()))
@@ -32,7 +31,6 @@ impl _turbocharger_tls_cert {
   )
  }
  #[tracked]
- #[allow(clippy::needless_question_mark)]
  fn parsed_key(&self) -> tracked::Result<Vec<PrivateKey>> {
   Ok(
    rustls_pemfile::pkcs8_private_keys(&mut BufReader::new(
