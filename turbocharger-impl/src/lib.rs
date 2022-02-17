@@ -363,9 +363,17 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
 
    #[cfg(target_arch = "wasm32")]
    #[wasm_bindgen]
+   extern "C" {
+    #[wasm_bindgen(typescript_type = "Subscriber<any>")]
+    pub type SubscriberFunction;
+   }
+
+   #[cfg(target_arch = "wasm32")]
+   #[wasm_bindgen]
    impl #store_name {
     #[wasm_bindgen]
-    pub fn subscribe(&mut self, subscription: ::turbocharger::js_sys::Function) -> JsValue {
+    pub fn subscribe(&mut self, subscription: SubscriberFunction) -> JsValue {
+     let subscription: ::turbocharger::js_sys::Function = JsValue::from(subscription).into();
      if self.subscriptions.lock().unwrap().is_empty() {
       let tx = ::turbocharger::_Transaction::new();
       self.req.lock().unwrap().txid = tx.txid;
