@@ -7,6 +7,12 @@ use std::sync::Mutex;
 
 pub use turbocharger_impl::{backend, server_only, wasm_only};
 
+#[wasm_only]
+#[wasm_bindgen(typescript_custom_section)]
+const Subscriber: &'static str = r#"
+import { Subscriber } from "svelte/store";
+"#;
+
 #[doc(hidden)]
 pub use {bincode, futures, serde};
 
