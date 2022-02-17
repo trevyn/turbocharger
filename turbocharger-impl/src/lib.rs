@@ -187,6 +187,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
  let impl_fn_ident = format_ident!("_TURBOCHARGER_IMPL_{}", orig_fn_ident);
  let remote_fn_ident = format_ident!("remote_{}", orig_fn_ident);
  let remote_impl_ident = format_ident!("_TURBOCHARGER_REMOTEIMPL_{}", orig_fn_ident);
+ let subscriber_fn_ident = format_ident!("_TURBOCHARGER_SUBSCRIBERFN_{}", orig_fn_ident);
 
  let orig_fn_ret_ty = match orig_fn.sig.output.clone() {
   syn::ReturnType::Default => None,
@@ -365,14 +366,15 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
    #[wasm_bindgen]
    extern "C" {
     #[wasm_bindgen(typescript_type = "Subscriber<any>")]
-    pub type SubscriberFunction;
+    #[allow(non_camel_case_types)]
+    pub type #subscriber_fn_ident;
    }
 
    #[cfg(target_arch = "wasm32")]
    #[wasm_bindgen]
    impl #store_name {
     #[wasm_bindgen]
-    pub fn subscribe(&mut self, subscription: SubscriberFunction) -> JsValue {
+    pub fn subscribe(&mut self, subscription: #subscriber_fn_ident) -> JsValue {
      let subscription: ::turbocharger::js_sys::Function = JsValue::from(subscription).into();
      if self.subscriptions.lock().unwrap().is_empty() {
       let tx = ::turbocharger::_Transaction::new();
