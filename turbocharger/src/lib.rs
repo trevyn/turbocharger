@@ -166,11 +166,12 @@ impl Default for _Transaction {
 
 /// _Experimental._ Spawns a new Turbocharger UDP server. Future resolves when the server is ready to respond to requests.
 #[server_only]
+#[tracked::tracked]
 #[doc(hidden)]
-pub async fn spawn_udp_server(port: u16) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn spawn_udp_server(port: u16) -> tracked::Result<()> {
  let socket = std::sync::Arc::new(tokio::net::UdpSocket::bind(format!("0.0.0.0:{}", port)).await?);
  log::debug!("Listening on: {}", socket.local_addr()?);
- *UDP_SOCKET.lock()? = Some(socket.clone());
+ *UDP_SOCKET.lock().unwrap() = Some(socket.clone());
 
  tokio::spawn(async move {
   loop {
