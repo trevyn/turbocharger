@@ -5,7 +5,7 @@ use axum::{
  body::{boxed, Full},
  extract::{
   ws::{Message, WebSocket, WebSocketUpgrade},
-  TypedHeader,
+  ConnectInfo, TypedHeader,
  },
  handler::Handler,
  headers,
@@ -29,7 +29,10 @@ pub async fn serve<A: 'static + RustEmbed>(addr: &SocketAddr) {
   .route("/turbocharger_socket", get(ws_handler))
   .fallback(rust_embed_handler::<A>.into_service());
 
- Server::bind(addr).serve(app.into_make_service()).await.unwrap();
+ Server::bind(addr)
+  .serve(app.into_make_service_with_connect_info::<SocketAddr, _>())
+  .await
+  .unwrap();
 }
 
 /// Convenience function to run a full server with static files from `rust_embed` and the Turbocharger WebSocket.
@@ -60,8 +63,6 @@ where
 {
  fn into_response(self) -> Response {
   let path = self.0.into();
-  #[cfg(debug_assertions)]
-  std::thread::sleep(std::time::Duration::from_millis(50)); // this makes snowpack build --watch --hmr more reliable
   match A::get(path.as_str()) {
    Some(content) => {
     let body = boxed(Full::from(content.data));
@@ -79,15 +80,18 @@ where
 pub async fn ws_handler(
  ws: WebSocketUpgrade,
  user_agent: Option<TypedHeader<headers::UserAgent>>,
+ ConnectInfo(addr): ConnectInfo<SocketAddr>,
 ) -> impl IntoResponse {
- if let Some(TypedHeader(user_agent)) = user_agent {
-  log::debug!("connected: {}", user_agent.as_str());
+ let mut ua_str = String::new();
+ if let Some(TypedHeader(ua)) = user_agent {
+  ua_str = ua.as_str().into();
  }
 
- ws.on_upgrade(handle_socket)
+ ws.on_upgrade(move |ws| handle_socket(ws, ua_str, addr))
 }
 
-async fn handle_socket(ws: WebSocket) {
+async fn handle_socket(ws: WebSocket, ua: String, addr: SocketAddr) {
+ dbg!(ua, addr);
  let (mut ws_tx, mut ws_rx) = ws.split();
  let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
  let mut rx = tokio_stream::wrappers::UnboundedReceiverStream::new(rx);
@@ -131,7 +135,7 @@ async fn handle_socket(ws: WebSocket) {
      trigger.cancel();
     } else {
      let sender = Box::new(move |response| tx_clone.send(Message::Binary(response)).unwrap());
-     target_func.execute(sender, Some(tripwire), None).await;
+     target_func.execute(sender, Some(tripwire), Some(addr)).await;
     }
    }
   });

@@ -54,9 +54,9 @@ pub async fn serve(addr: &SocketAddr, app: axum::routing::Router) -> tracked::Re
  let listener = TcpListener::bind(addr).await?;
 
  loop {
-  let (stream, _peer_addr) = listener.accept().await?;
+  let (stream, peer_addr) = listener.accept().await?;
   let acceptor = acceptor.clone();
-  let app = app.clone();
+  let app = app.clone().layer(axum::AddExtensionLayer::new(axum::extract::ConnectInfo(peer_addr)));
 
   tokio::task::spawn_blocking(move || {
    tokio::runtime::Handle::current().block_on(async move {
@@ -146,7 +146,7 @@ fn request_cert(
   }
   let server = handle.spawn(async move {
    log::info!("proof server spawned, path = {}", path);
-   axum::Server::bind(&std::net::SocketAddr::from(([0, 0, 0, 0], 80)))
+   axum::Server::bind(&SocketAddr::from(([0, 0, 0, 0], 80)))
     .serve(app.into_make_service())
     .await
     .unwrap();
