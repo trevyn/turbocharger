@@ -34,6 +34,7 @@ pub trait RPC: Send + Sync {
   sender: Box<dyn Fn(Vec<u8>) + Send>,
   tripwire: Option<stream_cancel::Tripwire>,
   remote_addr: Option<std::net::SocketAddr>,
+  user_agent: Option<String>,
  );
  fn txid(&self) -> i64;
 }
@@ -195,7 +196,7 @@ pub async fn spawn_udp_server(port: u16) -> tracked::Result<()> {
         send_socket_cloned.send_to(&response, peer).await.unwrap();
        });
       });
-      target_func.execute(sender, None, Some(peer)).await;
+      target_func.execute(sender, None, Some(peer), Some("udp".into())).await;
      });
     }
     txid => {

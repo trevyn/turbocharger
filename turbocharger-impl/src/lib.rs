@@ -304,13 +304,15 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
  let mut remote_impl_fn = orig_fn.clone();
  remote_impl_fn.sig.ident = remote_impl_ident.clone();
  remote_impl_fn.sig.inputs = parse_quote!(
-  remote_addr: Option<std::net::SocketAddr>
+  remote_addr: Option<std::net::SocketAddr>,
+  user_agent: Option<String>,
   #orig_fn_params_maybe_comma
   #orig_fn_params
  );
 
  orig_fn.block = parse_quote!({
   let remote_addr: Option<std::net::SocketAddr> = None;
+  let user_agent: Option<String> = None;
   #( #orig_fn_stmts )*
  });
 
@@ -318,7 +320,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
   Some(_ty) => quote! {
    use ::turbocharger::futures::stream::StreamExt;
    use ::turbocharger::stream_cancel::StreamExt as OtherStreamExt;
-   let stream = super::#remote_impl_ident(remote_addr #orig_fn_params_maybe_comma #( self.params. #tuple_indexes .clone() ),*);
+   let stream = super::#remote_impl_ident(remote_addr, user_agent #orig_fn_params_maybe_comma #( self.params. #tuple_indexes .clone() ),*);
    ::turbocharger::futures::pin_mut!(stream);
 
    if let Some(tripwire) = tripwire {
@@ -342,7 +344,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
    }
   },
   None => quote! {
-   let result = super::#remote_impl_ident(remote_addr #orig_fn_params_maybe_comma #( self.params. #tuple_indexes .clone() ),*).await #maybe_map_err_string;
+   let result = super::#remote_impl_ident(remote_addr, user_agent #orig_fn_params_maybe_comma #( self.params. #tuple_indexes .clone() ),*).await #maybe_map_err_string;
    let response = super::#resp {
     txid: self.txid,
     result
@@ -474,7 +476,8 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
      &self,
      sender: Box<dyn Fn(Vec<u8>) + Send>,
      tripwire: Option<::turbocharger::stream_cancel::Tripwire>,
-     remote_addr: Option<std::net::SocketAddr>
+     remote_addr: Option<std::net::SocketAddr>,
+     user_agent: Option<String>
     ) {
      #executebody
     }

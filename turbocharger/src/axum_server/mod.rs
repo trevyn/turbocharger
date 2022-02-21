@@ -91,7 +91,6 @@ pub async fn ws_handler(
 }
 
 async fn handle_socket(ws: WebSocket, ua: String, addr: SocketAddr) {
- dbg!(ua, addr);
  let (mut ws_tx, mut ws_rx) = ws.split();
  let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
  let mut rx = tokio_stream::wrappers::UnboundedReceiverStream::new(rx);
@@ -118,6 +117,7 @@ async fn handle_socket(ws: WebSocket, ua: String, addr: SocketAddr) {
   };
   let tx_clone = tx.clone();
   let triggers_clone = triggers.clone();
+  let ua_clone = ua.clone();
   tokio::task::spawn(async move {
    let data = msg.clone().into_data();
    if !data.is_empty() {
@@ -135,7 +135,7 @@ async fn handle_socket(ws: WebSocket, ua: String, addr: SocketAddr) {
      trigger.cancel();
     } else {
      let sender = Box::new(move |response| tx_clone.send(Message::Binary(response)).unwrap());
-     target_func.execute(sender, Some(tripwire), Some(addr)).await;
+     target_func.execute(sender, Some(tripwire), Some(addr), Some(ua_clone)).await;
     }
    }
   });
