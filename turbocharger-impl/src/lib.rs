@@ -309,7 +309,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
  remote_impl_fn.sig.ident = remote_impl_ident.clone();
  remote_impl_fn.sig.inputs = parse_quote!(
   remote_addr: Option<std::net::SocketAddr>,
-  user_agent: Option<String>,
+  user_agent: Option<String>
   #orig_fn_params_maybe_comma
   #orig_fn_params
  );
