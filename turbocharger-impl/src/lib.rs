@@ -92,35 +92,37 @@ fn backend_item(orig_item: syn::Item) -> proc_macro2::TokenStream {
 // }
 
 fn backend_struct(orig_struct: syn::ItemStruct) -> proc_macro2::TokenStream {
- let mut api_struct = orig_struct.clone();
- api_struct.vis = parse_quote!();
- api_struct.attrs.retain(|attr| attr.path.is_ident("doc"));
- for field in &mut api_struct.fields {
-  field.vis = parse_quote!();
-  field.attrs.retain(|attr| attr.path.is_ident("doc"));
- }
+ if std::env::current_exe().unwrap().file_stem().unwrap() != "rust-analyzer" {
+  let mut api_struct = orig_struct.clone();
+  api_struct.vis = parse_quote!();
+  api_struct.attrs.retain(|attr| attr.path.is_ident("doc"));
+  for field in &mut api_struct.fields {
+   field.vis = parse_quote!();
+   field.attrs.retain(|attr| attr.path.is_ident("doc"));
+  }
 
- let lockfile = std::fs::File::create(std::env::temp_dir().join("turbocharger.lock")).unwrap();
- fs2::FileExt::lock_exclusive(&lockfile).unwrap();
+  let lockfile = std::fs::File::create(std::env::temp_dir().join("turbocharger.lock")).unwrap();
+  fs2::FileExt::lock_exclusive(&lockfile).unwrap();
 
- // add api_struct to file if it doesn't already exist, or replace it if it does
- let mut file = read_backend_api_rs();
+  // add api_struct to file if it doesn't already exist, or replace it if it does
+  let mut file = read_backend_api_rs();
 
- let mut found = false;
- for item in &mut file.items {
-  if let syn::Item::Struct(ref mut item) = item {
-   if item.ident == api_struct.ident {
-    found = true;
-    *item = api_struct.clone();
-    break;
+  let mut found = false;
+  for item in &mut file.items {
+   if let syn::Item::Struct(ref mut item) = item {
+    if item.ident == api_struct.ident {
+     found = true;
+     *item = api_struct.clone();
+     break;
+    }
    }
   }
- }
- if !found {
-  file.items.push(syn::Item::Struct(api_struct));
- }
+  if !found {
+   file.items.push(syn::Item::Struct(api_struct));
+  }
 
- write_backend_api_rs(file);
+  write_backend_api_rs(file);
+ }
 
  let syn::ItemStruct { attrs, ident, fields, .. } = orig_struct;
 
@@ -147,32 +149,34 @@ fn backend_struct(orig_struct: syn::ItemStruct) -> proc_macro2::TokenStream {
 }
 
 fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
- let mut api_fn = orig_fn.clone();
- api_fn.vis = parse_quote!();
- api_fn.attrs.retain(|attr| attr.path.is_ident("doc"));
- api_fn.block = parse_quote!({});
+ if std::env::current_exe().unwrap().file_stem().unwrap() != "rust-analyzer" {
+  let mut api_fn = orig_fn.clone();
+  api_fn.vis = parse_quote!();
+  api_fn.attrs.retain(|attr| attr.path.is_ident("doc"));
+  api_fn.block = parse_quote!({});
 
- let lockfile = std::fs::File::create(std::env::temp_dir().join("turbocharger.lock")).unwrap();
- fs2::FileExt::lock_exclusive(&lockfile).unwrap();
+  let lockfile = std::fs::File::create(std::env::temp_dir().join("turbocharger.lock")).unwrap();
+  fs2::FileExt::lock_exclusive(&lockfile).unwrap();
 
- // add api_fn to file if it doesn't already exist, or replace it if it does
- let mut file = read_backend_api_rs();
+  // add api_fn to file if it doesn't already exist, or replace it if it does
+  let mut file = read_backend_api_rs();
 
- let mut found = false;
- for item in &mut file.items {
-  if let syn::Item::Fn(ref mut item) = item {
-   if item.sig.ident == api_fn.sig.ident {
-    found = true;
-    *item = api_fn.clone();
-    break;
+  let mut found = false;
+  for item in &mut file.items {
+   if let syn::Item::Fn(ref mut item) = item {
+    if item.sig.ident == api_fn.sig.ident {
+     found = true;
+     *item = api_fn.clone();
+     break;
+    }
    }
   }
- }
- if !found {
-  file.items.push(syn::Item::Fn(api_fn));
- }
+  if !found {
+   file.items.push(syn::Item::Fn(api_fn));
+  }
 
- write_backend_api_rs(file);
+  write_backend_api_rs(file);
+ }
 
  let orig_fn_ident = orig_fn.sig.ident.clone();
  let orig_fn_string = orig_fn_ident.to_string();
