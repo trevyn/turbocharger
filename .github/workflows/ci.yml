@@ -33,7 +33,7 @@ jobs:
       matrix:
         # branch: [main, axum]
         os: [ubuntu-latest, macos-latest]
-        rust: [1.56, stable, beta, nightly-2022-02-08]
+        rust: [1.56, stable, beta, nightly]
 #              1.56 is minimum rustc version
 
     steps:
