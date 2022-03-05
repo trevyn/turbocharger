@@ -8,8 +8,6 @@
 todo_or_die::crates_io!("bincode", ">=2");
 #[cfg(test)]
 todo_or_die::crates_io!("axum", ">=0.5");
-#[cfg(test)]
-todo_or_die::crates_io!("turbosql", ">=0.5");
 
 mod extract_result;
 mod extract_stream;
@@ -357,6 +355,20 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
   },
  };
 
+ let maybe_svelte_typescript_type = if cfg!(feature = "svelte") {
+  quote! {
+   #[cfg(target_arch = "wasm32")]
+   #[wasm_bindgen]
+   extern "C" {
+    #[wasm_bindgen(typescript_type = "Subscriber<any>")]
+    #[allow(non_camel_case_types)]
+    pub type #subscriber_fn_ident;
+   }
+  }
+ } else {
+  quote!()
+ };
+
  let wasm_side = match &stream_inner_ty {
   Some(_ty) => quote! {
    #[cfg(target_arch = "wasm32")]
@@ -368,13 +380,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
     subscriptions: std::sync::Arc<std::sync::Mutex<Vec<std::sync::Arc<std::sync::Mutex<Option<::turbocharger::js_sys::Function>>>>>>,
    }
 
-   #[cfg(target_arch = "wasm32")]
-   #[wasm_bindgen]
-   extern "C" {
-    #[wasm_bindgen(typescript_type = "Subscriber<any>")]
-    #[allow(non_camel_case_types)]
-    pub type #subscriber_fn_ident;
-   }
+   #maybe_svelte_typescript_type
 
    #[cfg(target_arch = "wasm32")]
    #[wasm_bindgen]
