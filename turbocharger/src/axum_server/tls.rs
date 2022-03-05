@@ -56,7 +56,7 @@ pub async fn serve(addr: &SocketAddr, app: axum::routing::Router) -> tracked::Re
  loop {
   let (stream, peer_addr) = listener.accept().await?;
   let acceptor = acceptor.clone();
-  let app = app.clone().layer(axum::AddExtensionLayer::new(axum::extract::ConnectInfo(peer_addr)));
+  let app = app.clone().layer(axum::extract::Extension(axum::extract::ConnectInfo(peer_addr)));
 
   tokio::task::spawn_blocking(move || {
    tokio::runtime::Handle::current().block_on(async move {
