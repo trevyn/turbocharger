@@ -10,14 +10,14 @@ name = "turbocharger"
 readme = "../README.md"
 repository = "https://github.com/trevyn/turbocharger"
 rust-version = "1.56"
-version = "0.2.0"
+version = "0.3.0"
 
 [dependencies]
 bincode = "1"
 futures = "0.3"
 once_cell = "1"
 serde = {version = "1", features = ["derive"]}
-turbocharger-impl = {path = "../turbocharger-impl", version = "=0.2.0"}
+turbocharger-impl = {path = "../turbocharger-impl", version = "=0.3.0"}
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1"

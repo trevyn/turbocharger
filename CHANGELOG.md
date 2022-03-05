@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.0 - Unreleased
+
+### Changed
+
+- Changed server support from `warp` to `axum`.
+
+### Added
+
+- Implicit API description is saved in a `backend_api.rs` file in your project root. You can check this into source control to keep track of API changes.
+- Added automatic on-the-fly TLS certificate generation with Let's Encrypt, based on the received TLS SNI.
+- Added the ability to stream `Result` types, e.g. `impl Stream<Item = Result<i32, tracked::Error>>`.
+- Allow explicitly setting the backend Websocket URL, e.g. `backend.set_socket_url("ws://localhost:8080/turbocharger_socket");`.
+- Backend functions now have access to `remote_addr` and `user_agent` values.
+
+### Improved
+
+- Improved streaming response robustness.
+
 ## 0.2.0 - 2022-01-22
 
 ### Added
