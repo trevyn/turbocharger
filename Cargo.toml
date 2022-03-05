@@ -7,6 +7,7 @@ members = [
 
 [patch.crates-io]
 turbocharger = {path = './turbocharger'}
+turbosql = {git = "https://github.com/trevyn/turbosql", branch = "main"}
 
 [patch.'https://github.com/trevyn/turbocharger']
 turbocharger = {path = './turbocharger'}
