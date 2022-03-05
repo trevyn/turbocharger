@@ -53,7 +53,7 @@ jobs:
       - run: git submodule update --remote
 
       - name: cargo test turbocharger-impl
-        run: cargo test --features "test" -- --nocapture
+        run: cargo test -- --nocapture
         working-directory: 'turbocharger-impl'
 
       - run: npm run build
