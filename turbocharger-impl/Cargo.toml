@@ -1,5 +1,5 @@
 [package]
-authors = ["trevyn <trevyn-git@protonmail.com>"]
+authors = ["The authors"]
 description = "Internal implementation details for Turbocharger."
 edition = "2021"
 license = "MIT OR Apache-2.0 OR CC0-1.0"
@@ -18,8 +18,9 @@ proc-macro-error = "1"
 proc-macro2 = "1"
 quote = "1"
 syn = {version = "1", features = ["extra-traits", "full"]}
-todo-or-die = {version = "0.1", features = ["crate"], optional = true}
+
+[dev-dependencies]
+todo-or-die = {version = "0.1", features = ["crate"]}
 
 [features]
 full = []
-test = ["todo-or-die"]
