@@ -47,5 +47,6 @@ typetag = "0.1"
 
 [features]
 axum_server = ["rust-embed", "mime_guess", "axum"]
-full = ["axum_server", "tls"]
+full = ["axum_server", "tls", "svelte"]
+svelte = ["turbocharger-impl/svelte"]
 tls = ["tokio-rustls", "rustls-pemfile", "hyper", "acme-lib", "turbosql"]
