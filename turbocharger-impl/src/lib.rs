@@ -13,7 +13,7 @@ mod extract_result;
 mod extract_stream;
 use proc_macro_error::{abort, proc_macro_error};
 use quote::{format_ident, quote, quote_spanned};
-use syn::{parse_quote, spanned::Spanned};
+use syn::{parse_macro_input, parse_quote, spanned::Spanned};
 
 /// Apply this to an item to make it available on the server target only.
 ///
@@ -23,7 +23,7 @@ pub fn server_only(
  _args: proc_macro::TokenStream,
  input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
- let orig_item = syn::parse_macro_input!(input as syn::Item);
+ let orig_item = parse_macro_input!(input as syn::Item);
  proc_macro::TokenStream::from(quote! {
   #[cfg(not(target_arch = "wasm32"))]
   #orig_item
@@ -38,7 +38,7 @@ pub fn wasm_only(
  _args: proc_macro::TokenStream,
  input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
- let orig_item = syn::parse_macro_input!(input as syn::Item);
+ let orig_item = parse_macro_input!(input as syn::Item);
  proc_macro::TokenStream::from(quote! {
   #[cfg(target_arch = "wasm32")]
   #[allow(unused_imports)]
