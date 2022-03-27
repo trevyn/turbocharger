@@ -122,9 +122,10 @@ fn backend_struct(orig_struct: syn::ItemStruct) -> proc_macro2::TokenStream {
   write_backend_api_rs(file);
  }
 
- let syn::ItemStruct { attrs, ident, fields, .. } = orig_struct;
+ #[allow(clippy::redundant_clone)]
+ let syn::ItemStruct { attrs, ident, fields, .. } = orig_struct.clone();
 
- quote! {
+ let output = quote! {
   #[cfg(target_arch = "wasm32")]
   #[allow(unused_imports)]
   use wasm_bindgen::prelude::*;
@@ -143,7 +144,29 @@ fn backend_struct(orig_struct: syn::ItemStruct) -> proc_macro2::TokenStream {
     #ident::default()
    }
   }
+ };
+
+ #[cfg(feature = "debug_expansions")]
+ {
+  std::fs::create_dir_all("debug_expansions").ok();
+  std::fs::write(
+   project_root_path_with(format!("debug_expansions/{}.rs", orig_struct.ident)),
+   prettyplease::unparse(&parse_quote!( #output )),
+  )
+  .unwrap();
+
+  std::process::Command::new("rustfmt")
+   .current_dir(project_root_path_with("debug_expansions"))
+   .arg("--edition")
+   .arg("2021")
+   .arg("--config")
+   .arg("tab_spaces=1")
+   .arg(format!("{}.rs", orig_struct.ident))
+   .output()
+   .unwrap();
  }
+
+ output
 }
 
 fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
@@ -463,7 +486,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
   },
  };
 
- quote! {
+ let output = quote! {
   #[cfg(target_arch = "wasm32")]
   #[allow(unused_imports)]
   use wasm_bindgen::prelude::*;
@@ -542,7 +565,29 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
    txid: i64,
    result: #serialize_ret_ty,
   }
+ };
+
+ #[cfg(feature = "debug_expansions")]
+ {
+  std::fs::create_dir_all("debug_expansions").ok();
+  std::fs::write(
+   project_root_path_with(format!("debug_expansions/{}.rs", orig_fn_string)),
+   prettyplease::unparse(&parse_quote!( #output )),
+  )
+  .unwrap();
+
+  std::process::Command::new("rustfmt")
+   .current_dir(project_root_path_with("debug_expansions"))
+   .arg("--edition")
+   .arg("2021")
+   .arg("--config")
+   .arg("tab_spaces=1")
+   .arg(format!("{}.rs", orig_fn_string))
+   .output()
+   .unwrap();
  }
+
+ output
 }
 
 fn read_backend_api_rs() -> syn::File {
@@ -567,11 +612,15 @@ fn write_backend_api_rs(file: syn::File) {
 }
 
 fn backend_api_rs_path() -> std::path::PathBuf {
+ project_root_path_with("backend_api.rs")
+}
+
+fn project_root_path_with<P: AsRef<std::path::Path>>(pushpath: P) -> std::path::PathBuf {
  let mut path = std::path::PathBuf::from(env!("OUT_DIR"));
  while path.file_name() != Some(std::ffi::OsStr::new("target")) {
   path.pop();
  }
  path.pop();
- path.push("backend_api.rs");
+ path.push(pushpath);
  path
 }

@@ -23,5 +23,6 @@ syn = {version = "1", features = ["extra-traits", "full"]}
 todo-or-die = {version = "0.1", features = ["crate"]}
 
 [features]
+debug_expansions = []
 full = ["svelte"]
 svelte = []
