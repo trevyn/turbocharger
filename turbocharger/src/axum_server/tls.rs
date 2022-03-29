@@ -24,14 +24,14 @@ struct _turbocharger_tls_cert {
 
 impl _turbocharger_tls_cert {
  #[tracked]
- fn parsed_cert(&self) -> tracked::Result<Vec<Certificate>> {
+ fn parsed_cert(&self) -> Result<Vec<Certificate>, tracked::StringError> {
   Ok(
    rustls_pemfile::certs(&mut BufReader::new(self.cert.as_ref()?.as_bytes()))
     .map(|mut certs| certs.drain(..).map(Certificate).collect())?,
   )
  }
  #[tracked]
- fn parsed_key(&self) -> tracked::Result<Vec<PrivateKey>> {
+ fn parsed_key(&self) -> Result<Vec<PrivateKey>, tracked::StringError> {
   Ok(
    rustls_pemfile::pkcs8_private_keys(&mut BufReader::new(
     tracked::Track::t(self.key.as_ref())?.as_bytes(),
@@ -89,7 +89,7 @@ impl rustls::server::ResolvesServerCert for Resolver {
 fn resolve_cert(
  handle: &tokio::runtime::Handle,
  server_name: &str,
-) -> tracked::Result<rustls::sign::CertifiedKey> {
+) -> Result<rustls::sign::CertifiedKey, tracked::StringError> {
  if select!(Option<_turbocharger_tls_cert> "WHERE server_name = ?", server_name)?.is_none() {
   let cert = request_cert(handle, server_name)?;
   _turbocharger_tls_cert {
@@ -116,7 +116,7 @@ fn resolve_cert(
 fn request_cert(
  handle: &tokio::runtime::Handle,
  server_name: &str,
-) -> tracked::Result<acme_lib::Certificate> {
+) -> Result<acme_lib::Certificate, tracked::StringError> {
  log::warn!("requesting new TLS cert for {}", server_name);
 
  let url = acme_lib::DirectoryUrl::LetsEncrypt;
