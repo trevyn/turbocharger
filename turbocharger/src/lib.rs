@@ -270,6 +270,7 @@ async fn ensure_ws_connected() {
 }
 
 #[wasm_only]
+#[cfg(feature = "console_error_panic_hook")]
 #[wasm_bindgen(start)]
 pub async fn start() -> Result<(), JsValue> {
  console_error_panic_hook::set_once();
