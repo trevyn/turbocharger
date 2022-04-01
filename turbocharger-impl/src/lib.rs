@@ -6,8 +6,6 @@
 
 #[cfg(test)]
 todo_or_die::crates_io!("bincode", ">=2");
-#[cfg(test)]
-todo_or_die::crates_io!("axum", ">=0.5");
 
 mod extract_result;
 mod extract_stream;

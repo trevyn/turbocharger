@@ -29,10 +29,7 @@ pub async fn serve<A: 'static + RustEmbed>(addr: &SocketAddr) {
   .route("/turbocharger_socket", get(ws_handler))
   .fallback(rust_embed_handler::<A>.into_service());
 
- Server::bind(addr)
-  .serve(app.into_make_service_with_connect_info::<SocketAddr, _>())
-  .await
-  .unwrap();
+ Server::bind(addr).serve(app.into_make_service_with_connect_info::<SocketAddr>()).await.unwrap();
 }
 
 /// Convenience function to run a full server with static files from `rust_embed` and the Turbocharger WebSocket.
