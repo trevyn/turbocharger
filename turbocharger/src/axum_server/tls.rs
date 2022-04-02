@@ -3,6 +3,7 @@
 // and
 // https://github.com/tokio-rs/axum/blob/3b579c721504d4d64de74b414f39c3dfb33b923a/examples/tls_rustls.rs
 
+use once_cell::sync::Lazy;
 use std::io::BufReader;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -70,18 +71,23 @@ pub async fn serve(addr: &SocketAddr, app: axum::routing::Router) -> tracked::Re
 
 struct Resolver(tokio::runtime::Handle);
 
+static RESOLVER_MUTEX: Lazy<std::sync::Mutex<()>> = Lazy::new(Default::default);
+
 impl rustls::server::ResolvesServerCert for Resolver {
  fn resolve(
   &self,
   client_hello: rustls::server::ClientHello<'_>,
  ) -> Option<Arc<rustls::sign::CertifiedKey>> {
-  match resolve_cert(&self.0, &client_hello.server_name()?.to_ascii_lowercase()) {
+  let resolver_mutex = RESOLVER_MUTEX.lock().unwrap();
+  let result = match resolve_cert(&self.0, &client_hello.server_name()?.to_ascii_lowercase()) {
    Ok(cert) => Some(Arc::new(cert)),
    Err(e) => {
     log::error!("{}", e);
     None
    }
-  }
+  };
+  drop(resolver_mutex);
+  result
  }
 }
 
