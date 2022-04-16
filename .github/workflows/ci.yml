@@ -58,7 +58,7 @@ jobs:
 
       - run: npm run build
         working-directory: 'turbocharger-template'
-      - run: npx audit-ci --low -a GHSA-fwr7-v2mv-hh25
+      - run: npx audit-ci --low
         working-directory: 'turbocharger-template'
       - run: npm run test-ci
         working-directory: 'turbocharger-template'
