@@ -236,7 +236,7 @@ async fn ensure_ws_connected() {
  let socket_url = g.socket_url.clone().unwrap();
 
  if g.channel_tx.is_none() {
-  let (channel_tx, mut channel_rx) = futures::channel::mpsc::unbounded();
+  let (channel_tx, mut channel_rx) = futures_channel::mpsc::unbounded();
   g.channel_tx = Some(channel_tx);
 
   drop(g);
