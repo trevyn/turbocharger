@@ -23,7 +23,7 @@ pub use {async_stream, async_trait::async_trait, stream_cancel, typetag};
 
 #[cfg(target_arch = "wasm32")]
 #[doc(hidden)]
-pub use js_sys;
+pub use {js_sys, wasm_bindgen};
 
 #[server_only]
 #[doc(hidden)]

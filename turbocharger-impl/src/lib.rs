@@ -30,7 +30,7 @@ pub fn server_only(
 
 /// Apply this to an item to make it available on the wasm target only.
 ///
-/// Only adds `#[cfg(target_arch = "wasm32")]` and ensures `wasm_bindgen::prelude::*` is available.
+/// Only adds `#[cfg(target_arch = "wasm32")]` and ensures `wasm_bindgen` and `wasm_bindgen::prelude::*` are available.
 #[proc_macro_attribute]
 pub fn wasm_only(
  _args: proc_macro::TokenStream,
@@ -40,7 +40,7 @@ pub fn wasm_only(
  proc_macro::TokenStream::from(quote! {
   #[cfg(target_arch = "wasm32")]
   #[allow(unused_imports)]
-  use wasm_bindgen::prelude::*;
+  use ::turbocharger::wasm_bindgen::{self, prelude::*};
 
   #[cfg(target_arch = "wasm32")]
   #orig_item
@@ -126,7 +126,7 @@ fn backend_struct(orig_struct: syn::ItemStruct) -> proc_macro2::TokenStream {
  let output = quote! {
   #[cfg(target_arch = "wasm32")]
   #[allow(unused_imports)]
-  use wasm_bindgen::prelude::*;
+  use ::turbocharger::wasm_bindgen::{self, prelude::*};
 
   #[cfg_attr(target_arch = "wasm32", wasm_bindgen(getter_with_clone, inspectable))]
   #[derive(::turbocharger::serde::Serialize, ::turbocharger::serde::Deserialize, Clone)]
@@ -487,7 +487,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
  let output = quote! {
   #[cfg(target_arch = "wasm32")]
   #[allow(unused_imports)]
-  use wasm_bindgen::prelude::*;
+  use ::turbocharger::wasm_bindgen::{self, prelude::*};
 
   #[cfg(not(target_arch = "wasm32"))]
   #orig_fn
