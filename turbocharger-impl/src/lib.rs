@@ -282,7 +282,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
  let orig_fn_ret_ty = match (&orig_fn_ret_ty, &stream_inner_ty) {
   (Some(ty), None) => quote_spanned! {ty.span()=> #ty },
   (Some(_), Some(ty)) => {
-   quote_spanned! {ty.span()=> impl ::turbocharger::futures::stream::Stream<Item = #ty > }
+   quote_spanned! {ty.span()=> impl ::turbocharger::futures_util::stream::Stream<Item = #ty > }
   }
   (None, _) => quote! { () },
  };
@@ -341,10 +341,10 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
 
  let executebody = match &stream_inner_ty {
   Some(_ty) => quote! {
-   use ::turbocharger::futures::stream::StreamExt;
+   use ::turbocharger::futures_util::stream::StreamExt;
    use ::turbocharger::stream_cancel::StreamExt as OtherStreamExt;
    let stream = super::#remote_impl_ident(remote_addr, user_agent #orig_fn_params_maybe_comma #( self.params. #tuple_indexes .clone() ),*);
-   ::turbocharger::futures::pin_mut!(stream);
+   ::turbocharger::futures_util::pin_mut!(stream);
 
    if let Some(tripwire) = tripwire {
     let mut incoming = stream.take_until_if(tripwire);

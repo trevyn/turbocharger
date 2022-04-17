@@ -1,7 +1,7 @@
 #![deny(unsafe_code)]
 #![doc = include_str!("../README.md")]
 
-use futures::{SinkExt, StreamExt};
+use futures_util::{SinkExt, StreamExt};
 use once_cell::sync::Lazy;
 use std::sync::Mutex;
 
@@ -15,7 +15,7 @@ import { Subscriber } from "svelte/store";
 "#;
 
 #[doc(hidden)]
-pub use {bincode, futures, serde};
+pub use {bincode, futures_util, serde};
 
 #[server_only]
 #[doc(hidden)]
@@ -42,11 +42,11 @@ pub trait RPC: Send + Sync {
 
 struct Globals {
  #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
- channel_tx: Option<futures::channel::mpsc::UnboundedSender<Vec<u8>>>,
+ channel_tx: Option<futures_channel::mpsc::UnboundedSender<Vec<u8>>>,
  #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
  socket_url: Option<String>,
  next_txid: i64,
- senders: std::collections::HashMap<i64, futures::channel::mpsc::UnboundedSender<Vec<u8>>>,
+ senders: std::collections::HashMap<i64, futures_channel::mpsc::UnboundedSender<Vec<u8>>>,
 }
 
 impl Default for Globals {
@@ -115,12 +115,12 @@ pub use axum_server::serve_tls;
 #[doc(hidden)]
 pub struct _Transaction {
  pub txid: i64,
- resp_rx: futures::channel::mpsc::UnboundedReceiver<Vec<u8>>,
+ resp_rx: futures_channel::mpsc::UnboundedReceiver<Vec<u8>>,
 }
 
 impl _Transaction {
  pub fn new() -> Self {
-  let (resp_tx, resp_rx) = futures::channel::mpsc::unbounded();
+  let (resp_tx, resp_rx) = futures_channel::mpsc::unbounded();
 
   let mut g = G.lock().unwrap();
 

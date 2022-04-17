@@ -14,7 +14,7 @@ use axum::{
  routing::{get, Router},
  Server,
 };
-use futures::{SinkExt, StreamExt, TryFutureExt};
+use futures_util::{SinkExt, StreamExt, TryFutureExt};
 use rust_embed::RustEmbed;
 use std::{
  collections::HashMap,
