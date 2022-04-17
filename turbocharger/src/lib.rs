@@ -15,7 +15,7 @@ import { Subscriber } from "svelte/store";
 "#;
 
 #[doc(hidden)]
-pub use {bincode, futures_util, serde};
+pub use {bincode, futures_util, serde, wasm_bindgen, wasm_bindgen_futures};
 
 #[server_only]
 #[doc(hidden)]
@@ -23,7 +23,7 @@ pub use {async_stream, async_trait::async_trait, stream_cancel, typetag};
 
 #[cfg(target_arch = "wasm32")]
 #[doc(hidden)]
-pub use {js_sys, wasm_bindgen};
+pub use js_sys;
 
 #[server_only]
 #[doc(hidden)]

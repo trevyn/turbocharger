@@ -19,12 +19,12 @@ futures-util = "0.3"
 once_cell = "1"
 serde = {version = "1", features = ["derive"]}
 turbocharger-impl = {path = "../turbocharger-impl", version = "=0.3.0"}
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = {version = "0.1", optional = true}
 js-sys = "0.3"
-wasm-bindgen = "0.2"
-wasm-bindgen-futures = "0.4"
 web-sys = {version = "0.3", features = ["Location", "Window"]}
 ws_stream_wasm = "0.7"
 
