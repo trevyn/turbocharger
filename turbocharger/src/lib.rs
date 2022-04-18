@@ -7,6 +7,11 @@ use std::sync::Mutex;
 
 pub use turbocharger_impl::{backend, server_only, wasm_only};
 
+pub mod prelude {
+ #[cfg(any(feature = "wasm", target_arch = "wasm32"))]
+ pub use {wasm_bindgen, wasm_bindgen::prelude::*, wasm_bindgen_futures};
+}
+
 #[wasm_only]
 #[cfg(feature = "svelte")]
 #[wasm_bindgen(typescript_custom_section)]
@@ -15,7 +20,7 @@ import { Subscriber } from "svelte/store";
 "#;
 
 #[doc(hidden)]
-pub use {bincode, futures_util, serde, wasm_bindgen, wasm_bindgen_futures};
+pub use {bincode, futures_util, serde};
 
 #[server_only]
 #[doc(hidden)]
