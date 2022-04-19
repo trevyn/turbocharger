@@ -76,16 +76,18 @@ static UDP_SOCKET: Lazy<Mutex<Option<std::sync::Arc<tokio::net::UdpSocket>>>> =
 #[wasm_only]
 #[macro_export]
 macro_rules! console_log {
- ($($t:tt)*) => (
-  ::turbocharger::call_console_log(&format_args!($($t)*).to_string());
- )
+ ($($t:tt)*) => ( ::turbocharger::call_console_log(&format_args!($($t)*).to_string()); )
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[macro_export]
+macro_rules! console_log {
+ ($($t:tt)*) => ( let _ = format_args!($($t)*); )
 }
 
 #[wasm_only]
 macro_rules! tc_console_log {
- ($($t:tt)*) => (
-  call_console_log(&format_args!($($t)*).to_string());
- )
+ ($($t:tt)*) => ( call_console_log(&format_args!($($t)*).to_string()); )
 }
 
 #[wasm_only]
