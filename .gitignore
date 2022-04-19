@@ -3,3 +3,5 @@ debug_expansions
 Cargo.lock
 **/package-lock.json
 .DS_Store
+backend_api.rs
+migrations.toml
