@@ -5,5 +5,8 @@
  "rust-analyzer.cargo.features": ["full"],
  "css.lint.unknownAtRules": "ignore",
  "editor.tabSize": 1,
- "editor.detectIndentation": false
+ "editor.detectIndentation": false,
+ "files.insertFinalNewline": true,
+ "editor.formatOnSave": true,
+ "files.trimTrailingWhitespace": true
 }
