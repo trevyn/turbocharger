@@ -51,15 +51,15 @@ pub fn wasm_only(
 #[proc_macro_attribute]
 #[proc_macro_error]
 pub fn backend(
- _args: proc_macro::TokenStream,
+ args: proc_macro::TokenStream,
  input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
- backend_item(syn::parse_macro_input!(input as syn::Item)).into()
+ backend_item(args, syn::parse_macro_input!(input as syn::Item)).into()
 }
 
-fn backend_item(orig_item: syn::Item) -> proc_macro2::TokenStream {
+fn backend_item(args: proc_macro::TokenStream, orig_item: syn::Item) -> proc_macro2::TokenStream {
  match orig_item {
-  syn::Item::Fn(orig) => backend_fn(orig),
+  syn::Item::Fn(orig) => backend_fn(args, orig),
   syn::Item::Struct(orig) => backend_struct(orig),
   // syn::Item::Mod(orig) => backend_mod(orig),
   _ => abort!(orig_item, "Apply #[backend] to `fn` or `struct`."),
@@ -167,7 +167,9 @@ fn backend_struct(orig_struct: syn::ItemStruct) -> proc_macro2::TokenStream {
  output
 }
 
-fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
+fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
+ let is_js = args.to_string() == "js";
+
  if std::env::current_exe().unwrap().file_stem().unwrap() != "rust-analyzer" {
   let mut api_fn = orig_fn.clone();
   api_fn.vis = parse_quote!();
@@ -388,72 +390,6 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
  let wasm_side = match &stream_inner_ty {
   Some(_ty) => quote! {
    #[cfg(target_arch = "wasm32")]
-   #[allow(non_camel_case_types)]
-   #[wasm_bindgen]
-   pub struct #store_name {
-    req: std::sync::Arc<std::sync::Mutex<#req>>,
-    value: std::sync::Arc<std::sync::Mutex<Option< #store_value_ty >>>,
-    subscriptions: std::sync::Arc<std::sync::Mutex<Vec<std::sync::Arc<std::sync::Mutex<Option<::turbocharger::js_sys::Function>>>>>>,
-   }
-
-   #maybe_svelte_typescript_type
-
-   #[cfg(target_arch = "wasm32")]
-   #[wasm_bindgen]
-   impl #store_name {
-    #[wasm_bindgen]
-    pub fn subscribe(&mut self, subscription: #subscriber_fn_ident) -> JsValue {
-     let subscription: ::turbocharger::js_sys::Function = JsValue::from(subscription).into();
-     if self.subscriptions.lock().unwrap().is_empty() {
-      let tx = ::turbocharger::_Transaction::new();
-      self.req.lock().unwrap().txid = tx.txid;
-      tx.send_ws(::turbocharger::bincode::serialize(&*self.req.lock().unwrap()).unwrap());
-      let subscriptions = self.subscriptions.clone();
-      let value = self.value.clone();
-      tx.set_sender(Box::new(move |response| {
-       let #resp { result, .. } =
-        ::turbocharger::bincode::deserialize(&response).unwrap();
-       value.lock().unwrap().replace(result.clone() #maybe_map_err_jsvalue );
-       #send_value_to_subscriptions
-      }));
-     }
-
-     #send_value_to_subscription
-     let subscription_handle = std::sync::Arc::new(std::sync::Mutex::new(Some(subscription)));
-     self.subscriptions.lock().unwrap().push(subscription_handle.clone());
-     let subscriptions = self.subscriptions.clone();
-     let req_clone = self.req.clone();
-
-     Closure::wrap(Box::new(move || {
-      subscription_handle.lock().unwrap().take();
-      subscriptions.lock().unwrap().retain(|s| { s.lock().unwrap().is_some() });
-      if subscriptions.lock().unwrap().is_empty() {
-       let tx = ::turbocharger::_Transaction::new();
-       tx.send_ws(::turbocharger::bincode::serialize(&*req_clone.lock().unwrap()).unwrap());
-      }
-     }) as Box<dyn Fn()>)
-     .into_js_value()
-    }
-   }
-
-   #[cfg(target_arch = "wasm32")]
-   #[allow(non_snake_case)]
-   #[wasm_bindgen(js_name = #orig_fn_ident)]
-   pub fn #js_fn_ident(#orig_fn_params) -> #bindgen_ret_ty {
-    let req = #req {
-     typetag_const_one: 1,
-     dispatch_name: #orig_fn_string,
-     txid: 1,
-     params: (#( #orig_fn_param_names ),* #orig_fn_params_maybe_comma),
-    };
-    #store_name {
-     req: std::sync::Arc::new(std::sync::Mutex::new(req)),
-     value: Default::default(),
-     subscriptions: Default::default()
-    }
-   }
-
-   #[cfg(target_arch = "wasm32")]
    pub fn #orig_fn_ident(#orig_fn_params) -> #orig_fn_ret_ty {
     let tx = ::turbocharger::_Transaction::new();
     let req = ::turbocharger::bincode::serialize(&#req {
@@ -482,13 +418,6 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
   },
   None => quote! {
    #[cfg(target_arch = "wasm32")]
-   #[allow(non_snake_case)]
-   #[wasm_bindgen(js_name = #orig_fn_ident)]
-   pub async fn #js_fn_ident(#orig_fn_params) -> #bindgen_ret_ty {
-    #orig_fn_ident(#( #orig_fn_param_names ),*) .await #maybe_map_err_jsvalue
-   }
-
-   #[cfg(target_arch = "wasm32")]
    pub async fn #orig_fn_ident(#orig_fn_params) -> #orig_fn_ret_ty {
     let tx = ::turbocharger::_Transaction::new();
     let req = ::turbocharger::bincode::serialize(&#req {
@@ -505,6 +434,88 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
     result
    }
   },
+ };
+
+ let js_side = if !is_js {
+  quote!()
+ } else {
+  match &stream_inner_ty {
+   Some(_ty) => quote! {
+    #[cfg(target_arch = "wasm32")]
+    #[allow(non_camel_case_types)]
+    #[wasm_bindgen]
+    pub struct #store_name {
+     req: std::sync::Arc<std::sync::Mutex<#req>>,
+     value: std::sync::Arc<std::sync::Mutex<Option< #store_value_ty >>>,
+     subscriptions: std::sync::Arc<std::sync::Mutex<Vec<std::sync::Arc<std::sync::Mutex<Option<::turbocharger::js_sys::Function>>>>>>,
+    }
+
+    #maybe_svelte_typescript_type
+
+    #[cfg(target_arch = "wasm32")]
+    #[wasm_bindgen]
+    impl #store_name {
+     #[wasm_bindgen]
+     pub fn subscribe(&mut self, subscription: #subscriber_fn_ident) -> JsValue {
+      let subscription: ::turbocharger::js_sys::Function = JsValue::from(subscription).into();
+      if self.subscriptions.lock().unwrap().is_empty() {
+       let tx = ::turbocharger::_Transaction::new();
+       self.req.lock().unwrap().txid = tx.txid;
+       tx.send_ws(::turbocharger::bincode::serialize(&*self.req.lock().unwrap()).unwrap());
+       let subscriptions = self.subscriptions.clone();
+       let value = self.value.clone();
+       tx.set_sender(Box::new(move |response| {
+        let #resp { result, .. } =
+         ::turbocharger::bincode::deserialize(&response).unwrap();
+        value.lock().unwrap().replace(result.clone() #maybe_map_err_jsvalue );
+        #send_value_to_subscriptions
+       }));
+      }
+
+      #send_value_to_subscription
+      let subscription_handle = std::sync::Arc::new(std::sync::Mutex::new(Some(subscription)));
+      self.subscriptions.lock().unwrap().push(subscription_handle.clone());
+      let subscriptions = self.subscriptions.clone();
+      let req_clone = self.req.clone();
+
+      Closure::wrap(Box::new(move || {
+       subscription_handle.lock().unwrap().take();
+       subscriptions.lock().unwrap().retain(|s| { s.lock().unwrap().is_some() });
+       if subscriptions.lock().unwrap().is_empty() {
+        let tx = ::turbocharger::_Transaction::new();
+        tx.send_ws(::turbocharger::bincode::serialize(&*req_clone.lock().unwrap()).unwrap());
+       }
+      }) as Box<dyn Fn()>)
+      .into_js_value()
+     }
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    #[allow(non_snake_case)]
+    #[wasm_bindgen(js_name = #orig_fn_ident)]
+    pub fn #js_fn_ident(#orig_fn_params) -> #bindgen_ret_ty {
+     let req = #req {
+      typetag_const_one: 1,
+      dispatch_name: #orig_fn_string,
+      txid: 1,
+      params: (#( #orig_fn_param_names ),* #orig_fn_params_maybe_comma),
+     };
+     #store_name {
+      req: std::sync::Arc::new(std::sync::Mutex::new(req)),
+      value: Default::default(),
+      subscriptions: Default::default()
+     }
+    }
+   },
+   None => quote! {
+    #[cfg(target_arch = "wasm32")]
+    #[allow(non_snake_case)]
+    #[wasm_bindgen(js_name = #orig_fn_ident)]
+    pub async fn #js_fn_ident(#orig_fn_params) -> #bindgen_ret_ty {
+     #orig_fn_ident(#( #orig_fn_param_names ),*) .await #maybe_map_err_jsvalue
+    }
+   },
+  }
  };
 
  let output = quote! {
@@ -542,6 +553,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
   }
 
   #wasm_side
+  #js_side
 
   #[cfg(not(target_arch = "wasm32"))]
   #[allow(non_snake_case)]
