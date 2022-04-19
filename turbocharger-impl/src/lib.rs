@@ -341,8 +341,8 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
 
  let executebody = match &stream_inner_ty {
   Some(_ty) => quote! {
-   use ::turbocharger::futures_util::stream::StreamExt;
-   use ::turbocharger::stream_cancel::StreamExt as OtherStreamExt;
+   use ::turbocharger::futures_util::stream::StreamExt as _;
+   use ::turbocharger::stream_cancel::StreamExt as _;
    let stream = super::#remote_impl_ident(remote_addr, user_agent #orig_fn_params_maybe_comma #( self.params. #tuple_indexes .clone() ),*);
    ::turbocharger::futures_util::pin_mut!(stream);
 
