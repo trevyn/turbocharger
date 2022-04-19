@@ -226,12 +226,8 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
   quote! { #stream_inner_ty }
  };
 
- let maybe_map_err_string = match &result_inner_ty {
-  Some(_) => quote! { .map_err(|e| e.to_string()) },
-  None => quote! {},
- };
  let maybe_map_err_jsvalue = match &result_inner_ty {
-  Some(_) => quote! { .map_err(|e| ::turbocharger::js_sys::Error::new(&e).into()) },
+  Some(_) => quote! { .map_err(|e| ::turbocharger::js_sys::Error::new(&e.to_string()).into()) },
   None => quote! {},
  };
 
@@ -296,10 +292,9 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
   (Some(_ty), _) => quote! { #store_name },
   (None, None) => quote! { #orig_fn_ret_ty },
  };
- let serialize_ret_ty = match (&stream_inner_ty, &result_inner_ty) {
-  (_, Some(ty)) => quote! { Result<#ty, String> },
-  (Some(ty), None) => quote! { #ty },
-  (None, None) => quote! { #orig_fn_ret_ty },
+ let serialize_ret_ty = match &stream_inner_ty {
+  Some(ty) => quote! { #ty },
+  None => quote! { #orig_fn_ret_ty },
  };
 
  let tuple_indexes = (0..orig_fn_params.len()).map(syn::Index::from);
@@ -351,7 +346,7 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
     while let Some(result) = incoming.next().await {
      let response = super::#resp {
       txid: self.txid,
-      result: result #maybe_map_err_string .clone()
+      result: result.clone()
      };
      sender(::turbocharger::bincode::serialize(&response).unwrap());
     }
@@ -360,14 +355,14 @@ fn backend_fn(orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
     while let Some(result) = stream.next().await {
      let response = super::#resp {
       txid: self.txid,
-      result: result #maybe_map_err_string .clone()
+      result: result.clone()
      };
      sender(::turbocharger::bincode::serialize(&response).unwrap());
     }
    }
   },
   None => quote! {
-   let result = super::#remote_impl_ident(remote_addr, user_agent #orig_fn_params_maybe_comma #( self.params. #tuple_indexes .clone() ),*).await #maybe_map_err_string;
+   let result = super::#remote_impl_ident(remote_addr, user_agent #orig_fn_params_maybe_comma #( self.params. #tuple_indexes .clone() ),*).await;
    let response = super::#resp {
     txid: self.txid,
     result
