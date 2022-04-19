@@ -20,7 +20,7 @@ import { Subscriber } from "svelte/store";
 "#;
 
 #[doc(hidden)]
-pub use {bincode, futures_util, serde};
+pub use {bincode, futures_channel, futures_util, serde};
 
 #[server_only]
 #[doc(hidden)]
