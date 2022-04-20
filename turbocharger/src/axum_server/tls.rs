@@ -43,7 +43,10 @@ impl _turbocharger_tls_cert {
 }
 
 #[tracked]
-pub async fn serve(addr: &SocketAddr, app: axum::routing::Router) -> tracked::Result<()> {
+pub async fn serve(
+ addr: &SocketAddr,
+ app: axum::routing::Router,
+) -> Result<(), tracked::StringError> {
  let mut config = rustls::ServerConfig::builder()
   .with_safe_defaults()
   .with_no_client_auth()

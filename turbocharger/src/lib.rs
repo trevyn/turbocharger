@@ -177,7 +177,7 @@ impl Default for _Transaction {
 #[server_only]
 #[tracked::tracked]
 #[doc(hidden)]
-pub async fn spawn_udp_server(port: u16) -> tracked::Result<()> {
+pub async fn spawn_udp_server(port: u16) -> Result<(), tracked::StringError> {
  let socket = std::sync::Arc::new(tokio::net::UdpSocket::bind(format!("0.0.0.0:{}", port)).await?);
  log::debug!("Listening on: {}", socket.local_addr()?);
  *UDP_SOCKET.lock().unwrap() = Some(socket.clone());
