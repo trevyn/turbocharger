@@ -42,7 +42,7 @@ stream-cancel = "0.8"
 tokio = "1"
 tokio-rustls = {version = "0.23", optional = true}
 tokio-stream = {version = "0.1", features = ["net"]}
-tracked = "0.4"
+tracked = "0.5"
 turbosql = {version = "0.5", optional = true}
 typetag = "0.1"
 wasm-bindgen = {version = "0.2", optional = true}
