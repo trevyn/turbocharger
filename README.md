@@ -112,6 +112,10 @@ Note that `backend.rs` is compiled to both `wasm32-unknown-unknown` and the host
 
 `#[backend]` functions that need to return an error can return a `Result<T, E: Display>` where `T` is a `wasm-bindgen`-compatible type and `E` is a type that implements `Display`, including any type implementing `std::error::Error`, including `Box<dyn std::error::Error>>` and `anyhow::Error`. Errors crossing the network boundary are converted to a `String` representation on the server via their `to_string()` method and delivered as a Promise rejection on the JS side.
 
+## Streaming Responses
+
+If a backend function returns a Stream<T>, the JavaScript function will return an object with a `.subscribe()` method. This method takes a closure that will be called on each new stream element, and returns a closure that should be called to unsubscribe from the stream. This provides direct compatibility with [Svelte stores](https://svelte.dev/docs#Store_contract) and [RxJS Observables](https://rxjs.dev/guide/observable).
+
 ## WASM-only functions
 
 You can also easily add standard `#[wasm_bindgen]`-style Rust functions to `wasm.rs`, accessible from the frontend only:
