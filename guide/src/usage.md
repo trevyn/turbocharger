@@ -2,7 +2,7 @@
 
 Your API is defined declaratively by functions annotated with `#[backend]`:
 
-```rust,ignore
+```rust,no-run
 use turbocharger::{prelude::*, backend};
 
 #[backend]

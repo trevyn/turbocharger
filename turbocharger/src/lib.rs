@@ -8,6 +8,8 @@ use std::sync::Mutex;
 pub use turbocharger_impl::{backend, server_only, wasm_only};
 
 pub mod prelude {
+ #[cfg(not(target_arch = "wasm32"))]
+ pub use typetag;
  #[cfg(any(feature = "wasm", target_arch = "wasm32"))]
  pub use {wasm_bindgen, wasm_bindgen::prelude::*, wasm_bindgen_futures};
 }
@@ -108,15 +110,15 @@ extern "C" {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-#[cfg(feature = "axum_server")]
+#[cfg(feature = "axum")]
 mod axum_server;
 
 #[cfg(not(target_arch = "wasm32"))]
-#[cfg(feature = "axum_server")]
+#[cfg(feature = "axum")]
 pub use axum_server::serve;
 
 #[cfg(not(target_arch = "wasm32"))]
-#[cfg(all(feature = "tls", feature = "axum_server"))]
+#[cfg(all(feature = "tls", feature = "axum"))]
 pub use axum_server::serve_tls;
 
 #[doc(hidden)]

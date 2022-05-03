@@ -9,7 +9,7 @@ license = "MIT OR Apache-2.0 OR CC0-1.0"
 name = "turbocharger"
 readme = "../README.md"
 repository = "https://github.com/trevyn/turbocharger"
-rust-version = "1.56"
+rust-version = "1.60"
 version = "0.3.0"
 
 [dependencies]
@@ -49,10 +49,14 @@ wasm-bindgen = {version = "0.2", optional = true}
 wasm-bindgen-futures = {version = "0.4", optional = true}
 
 [features]
-axum_server = ["rust-embed", "mime_guess", "axum"]
+axum = ["dep:axum", "rust-embed", "mime_guess"]
 debug_expansions = ["turbocharger-impl/debug_expansions"]
 default = ["console_error_panic_hook"]
-full = ["axum_server", "tls", "svelte"]
+full = ["axum", "tls", "svelte"]
 svelte = ["turbocharger-impl/svelte"]
 tls = ["tokio-rustls", "rustls-pemfile", "hyper", "acme-lib", "turbosql"]
 wasm = ["wasm-bindgen", "wasm-bindgen-futures"]
+
+[dev-dependencies]
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"

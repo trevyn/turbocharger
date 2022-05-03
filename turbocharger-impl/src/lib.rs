@@ -204,7 +204,6 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
  let orig_fn_params = orig_fn.sig.inputs.clone();
  let orig_fn_stmts = orig_fn.block.stmts.clone();
 
- let mod_name = format_ident!("_TURBOCHARGER_{}", orig_fn_ident);
  let store_name = format_ident!("_TURBOCHARGER_STORE_{}", orig_fn_ident);
  let dispatch = format_ident!("_TURBOCHARGER_DISPATCH_{}", orig_fn_ident);
  let req = format_ident!("_TURBOCHARGER_REQ_{}", orig_fn_ident);
@@ -340,13 +339,13 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
   Some(_ty) => quote! {
    use ::turbocharger::futures_util::stream::StreamExt as _;
    use ::turbocharger::stream_cancel::StreamExt as _;
-   let stream = super::#remote_impl_ident(remote_addr, user_agent #orig_fn_params_maybe_comma #( self.params. #tuple_indexes .clone() ),*);
+   let stream = #remote_impl_ident(remote_addr, user_agent #orig_fn_params_maybe_comma #( self.params. #tuple_indexes .clone() ),*);
    ::turbocharger::futures_util::pin_mut!(stream);
 
    if let Some(tripwire) = tripwire {
     let mut incoming = stream.take_until_if(tripwire);
     while let Some(result) = incoming.next().await {
-     let response = super::#resp {
+     let response = #resp {
       txid: self.txid,
       result: result.clone()
      };
@@ -355,7 +354,7 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
    }
    else {
     while let Some(result) = stream.next().await {
-     let response = super::#resp {
+     let response = #resp {
       txid: self.txid,
       result: result.clone()
      };
@@ -364,8 +363,8 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
    }
   },
   None => quote! {
-   let result = super::#remote_impl_ident(remote_addr, user_agent #orig_fn_params_maybe_comma #( self.params. #tuple_indexes .clone() ),*).await;
-   let response = super::#resp {
+   let result = #remote_impl_ident(remote_addr, user_agent #orig_fn_params_maybe_comma #( self.params. #tuple_indexes .clone() ),*).await;
+   let response = #resp {
     txid: self.txid,
     result
    };
@@ -524,6 +523,10 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
   use wasm_bindgen::prelude::*;
 
   #[cfg(not(target_arch = "wasm32"))]
+  #[allow(unused_imports)]
+  use turbocharger::prelude::*;
+
+  #[cfg(not(target_arch = "wasm32"))]
   #orig_fn
 
   #[cfg(not(target_arch = "wasm32"))]
@@ -532,23 +535,20 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
 
   #[cfg(not(target_arch = "wasm32"))]
   #[allow(non_snake_case)]
-  mod #mod_name {
-   use ::turbocharger::typetag;
-   #[::turbocharger::typetag::serde(name = #orig_fn_string)]
-   #[::turbocharger::async_trait]
-   impl ::turbocharger::RPC for super::#dispatch {
-    async fn execute(
-     &self,
-     sender: Box<dyn Fn(Vec<u8>) + Send>,
-     tripwire: Option<::turbocharger::stream_cancel::Tripwire>,
-     remote_addr: Option<std::net::SocketAddr>,
-     user_agent: Option<String>
-    ) {
-     #executebody
-    }
-    fn txid(&self) -> i64 {
-     self.txid
-    }
+  #[::turbocharger::typetag::serde(name = #orig_fn_string)]
+  #[::turbocharger::async_trait]
+  impl ::turbocharger::RPC for #dispatch {
+   async fn execute(
+    &self,
+    sender: Box<dyn Fn(Vec<u8>) + Send>,
+    tripwire: Option<::turbocharger::stream_cancel::Tripwire>,
+    remote_addr: Option<std::net::SocketAddr>,
+    user_agent: Option<String>
+   ) {
+    #executebody
+   }
+   fn txid(&self) -> i64 {
+    self.txid
    }
   }
 

@@ -45,30 +45,34 @@ See [https://github.com/trevyn/turbocharger-template](https://github.com/trevyn/
 
 ### `backend.rs`
 
-```rust,ignore
+```rust
+use tracked::tracked;
 use turbocharger::backend;
+use turbosql::Turbosql;
 
 #[backend]
-#[derive(turbosql::Turbosql, Default)]
+#[derive(Turbosql, Default)]
 pub struct Person {
  pub rowid: Option<i64>,
  pub name: Option<String>,
 }
 
 #[backend]
-pub async fn insert_person(p: Person) -> Result<i64, turbosql::Error> {
- p.insert() // returns rowid
+#[tracked]
+pub async fn insert_person(p: Person) -> Result<i64, tracked::StringError> {
+ Ok(p.insert()?) // returns rowid
 }
 
 #[backend]
-pub async fn get_person(rowid: i64) -> Result<Person, turbosql::Error> {
- turbosql::select!(Person "WHERE rowid = ?", rowid)
+#[tracked]
+pub async fn get_person(rowid: i64) -> Result<Person, tracked::StringError> {
+ Ok(turbosql::select!(Person "WHERE rowid = ?", rowid)?)
 }
 ```
 
 ### `server.rs`
 
-```rust,ignore
+```rust,no_run
 mod backend;
 
 #[tokio::main]
@@ -79,7 +83,7 @@ async fn main() {
 
  eprintln!("Serving on http://127.0.0.1:8080");
  let addr = std::net::SocketAddr::from(([0, 0, 0, 0], 8080));
- turbocharger::axum_server::serve::<Frontend>(&addr).await;
+ turbocharger::serve::<Frontend>(&addr).await;
 }
 ```
 
@@ -116,7 +120,9 @@ Note that `backend.rs` is compiled to both `wasm32-unknown-unknown` and the host
 
 You can also easily add standard `#[wasm_bindgen]`-style Rust functions to `wasm.rs`, accessible from the frontend only:
 
-```rust,ignore
+```rust
+use wasm_bindgen::prelude::*;
+
 #[wasm_bindgen]
 pub async fn get_wasm_greeting() -> String {
  "Hello from WASM".to_string()
