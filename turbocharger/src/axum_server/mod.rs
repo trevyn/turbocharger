@@ -44,6 +44,12 @@ pub async fn serve_tls<A: 'static + RustEmbed>(addr: &SocketAddr) {
 
 /// Axum handler for serving static files from rust_embed.
 pub async fn rust_embed_handler<A: RustEmbed>(uri: Uri, headers: HeaderMap) -> impl IntoResponse {
+ if let Some(if_none_match) = headers.get(header::IF_NONE_MATCH) {
+  if Some(if_none_match.to_str().unwrap_or_default()) == option_env!("BUILD_ID") {
+   return StatusCode::NOT_MODIFIED.into_response();
+  }
+ }
+
  let mut path = uri.path().trim_start_matches('/').to_string();
  let is_brotli = headers
   .get(header::ACCEPT_ENCODING)
@@ -52,7 +58,7 @@ pub async fn rust_embed_handler<A: RustEmbed>(uri: Uri, headers: HeaderMap) -> i
  if path.is_empty() {
   path = "index.html".to_string();
  }
- StaticFile::<_, A> { path, is_brotli, phantomdata: PhantomData }
+ StaticFile::<_, A> { path, is_brotli, phantomdata: PhantomData }.into_response()
 }
 
 struct StaticFile<T, A> {
