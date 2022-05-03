@@ -84,6 +84,11 @@ where
     let mime = mime_guess::from_path(path).first_or_octet_stream();
     let resp = Response::builder().header(header::CONTENT_TYPE, mime.as_ref());
     let resp = if is_brotli { resp.header(header::CONTENT_ENCODING, "br") } else { resp };
+    let resp = if let Some(build_id) = option_env!("BUILD_ID") {
+     resp.header(header::ETAG, build_id)
+    } else {
+     resp
+    };
     resp.body(body).unwrap()
    }
    None => {
