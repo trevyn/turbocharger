@@ -9,7 +9,7 @@ use axum::{
  },
  handler::Handler,
  headers,
- http::{header, StatusCode, Uri},
+ http::{header, header::HeaderMap, StatusCode, Uri},
  response::{IntoResponse, Response},
  routing::{get, Router},
  Server,
@@ -43,15 +43,23 @@ pub async fn serve_tls<A: 'static + RustEmbed>(addr: &SocketAddr) {
 }
 
 /// Axum handler for serving static files from rust_embed.
-pub async fn rust_embed_handler<A: RustEmbed>(uri: Uri) -> impl IntoResponse {
+pub async fn rust_embed_handler<A: RustEmbed>(uri: Uri, headers: HeaderMap) -> impl IntoResponse {
  let mut path = uri.path().trim_start_matches('/').to_string();
+ let is_brotli = headers
+  .get(header::ACCEPT_ENCODING)
+  .map(|enc| enc.to_str().unwrap_or_default().contains("br"))
+  .unwrap_or(false);
  if path.is_empty() {
   path = "index.html".to_string();
  }
- StaticFile::<_, A>(path, PhantomData)
+ StaticFile::<_, A> { path, is_brotli, phantomdata: PhantomData }
 }
 
-struct StaticFile<T, A>(pub T, PhantomData<A>);
+struct StaticFile<T, A> {
+ pub path: T,
+ is_brotli: bool,
+ phantomdata: PhantomData<A>,
+}
 
 impl<T, A> IntoResponse for StaticFile<T, A>
 where
@@ -59,12 +67,24 @@ where
  A: RustEmbed,
 {
  fn into_response(self) -> Response {
-  let path = self.0.into();
-  match A::get(path.as_str()) {
+  let path = self.path.into();
+
+  let content =
+   A::get(format!("{}{}", path.as_str(), if self.is_brotli { ".br" } else { "" }).as_str());
+
+  let (content, is_brotli) = if self.is_brotli && content.is_none() {
+   (A::get(path.as_str()), false)
+  } else {
+   (content, self.is_brotli)
+  };
+
+  match content {
    Some(content) => {
     let body = boxed(Full::from(content.data));
     let mime = mime_guess::from_path(path).first_or_octet_stream();
-    Response::builder().header(header::CONTENT_TYPE, mime.as_ref()).body(body).unwrap()
+    let resp = Response::builder().header(header::CONTENT_TYPE, mime.as_ref());
+    let resp = if is_brotli { resp.header(header::CONTENT_ENCODING, "br") } else { resp };
+    resp.body(body).unwrap()
    }
    None => {
     Response::builder().status(StatusCode::NOT_FOUND).body(boxed(Full::from("404"))).unwrap()
