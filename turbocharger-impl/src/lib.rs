@@ -7,8 +7,7 @@
 #[cfg(test)]
 todo_or_die::crates_io!("bincode", ">=2");
 
-mod extract_result;
-mod extract_stream;
+mod extract;
 use proc_macro_error::{abort, proc_macro_error};
 use quote::{format_ident, quote, quote_spanned};
 use syn::{parse_macro_input, parse_quote, spanned::Spanned};
@@ -217,10 +216,12 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
   syn::ReturnType::Default => None,
   syn::ReturnType::Type(_, path) => Some(*path),
  };
- let stream_inner_ty = orig_fn_ret_ty.clone().and_then(extract_stream::inner_ty);
+ let stream_inner_ty = orig_fn_ret_ty.as_ref().and_then(extract::extract_stream);
  let result_inner_ty =
-  if stream_inner_ty.is_some() { stream_inner_ty.clone() } else { orig_fn_ret_ty.clone() }
-   .and_then(extract_result::inner_ty);
+  if stream_inner_ty.is_some() { stream_inner_ty } else { orig_fn_ret_ty.as_ref() }
+   .and_then(extract::extract_result)
+   .cloned();
+ let stream_inner_ty = stream_inner_ty.cloned();
  let store_value_ty = if result_inner_ty.is_some() {
   quote! { Result<#result_inner_ty, JsValue> }
  } else {
