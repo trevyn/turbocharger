@@ -59,6 +59,11 @@ mod tests {
    extract_result(&syn::parse_str::<syn::Type>("foo::Result<String>").unwrap()),
    Some(&syn::parse_str::<syn::Type>("String").unwrap())
   );
+  assert_eq!(
+   extract_result(&syn::parse_str::<syn::Type>("Result<Vec<u8>, tracked::StringError>").unwrap()),
+   Some(&syn::parse_str::<syn::Type>("Vec<u8>").unwrap())
+  );
+
   assert_eq!(extract_result(&syn::parse_str::<syn::Type>("String").unwrap()), None);
 
   assert_eq!(
@@ -92,6 +97,16 @@ mod tests {
    extract_stream(&syn::parse_str::<syn::Type>("impl Stream<Item = anyhow::Result<i32>>").unwrap()),
    Some(&syn::parse_str::<syn::Type>("anyhow::Result<i32>").unwrap())
   );
+  assert_eq!(
+   extract_stream(
+    &syn::parse_str::<syn::Type>(
+     "Pin<Box<dyn Stream<Item = Result<Vec<u8>, tracked::StringError>>>>"
+    )
+    .unwrap()
+   ),
+   Some(&syn::parse_str::<syn::Type>("Result<Vec<u8>, tracked::StringError>").unwrap())
+  );
+
   assert_eq!(extract_stream(&syn::parse_str::<syn::Type>("u32").unwrap()), None);
  }
 }
