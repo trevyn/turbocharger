@@ -202,6 +202,7 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
  let orig_fn_string = orig_fn_ident.to_string();
  let orig_fn_params = orig_fn.sig.inputs.clone();
  let orig_fn_stmts = orig_fn.block.stmts.clone();
+ let mut orig_fn_stmts = quote!(#( #orig_fn_stmts )*);
 
  let store_name = format_ident!("_TURBOCHARGER_STORE_{}", orig_fn_ident);
  let dispatch = format_ident!("_TURBOCHARGER_DISPATCH_{}", orig_fn_ident);
@@ -280,7 +281,8 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
  let orig_fn_ret_ty = match (&orig_fn_ret_ty, &stream_inner_ty) {
   (Some(ty), None) => quote_spanned! {ty.span()=> #ty },
   (Some(_), Some(ty)) => {
-   quote_spanned! {ty.span()=> impl ::turbocharger::futures_util::stream::Stream<Item = #ty > }
+   orig_fn_stmts = quote!(Box::pin( #orig_fn_stmts ));
+   quote_spanned! {ty.span()=> std::pin::Pin<Box<dyn ::turbocharger::futures_util::stream::Stream<Item = #ty > + Send >> }
   }
   (None, _) => quote! { () },
  };
@@ -321,6 +323,8 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
 
  let orig_fn_params_maybe_comma = if orig_fn_params.is_empty() { quote!() } else { quote!( , ) };
 
+ orig_fn.block = parse_quote!({ #orig_fn_stmts });
+
  let mut remote_impl_fn = orig_fn.clone();
  remote_impl_fn.sig.ident = remote_impl_ident.clone();
  remote_impl_fn.sig.inputs = parse_quote!(
@@ -333,7 +337,7 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
  orig_fn.block = parse_quote!({
   let remote_addr: Option<std::net::SocketAddr> = None;
   let user_agent: Option<String> = None;
-  #( #orig_fn_stmts )*
+  #orig_fn_stmts
  });
 
  let executebody = match &stream_inner_ty {
@@ -413,7 +417,7 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
      });
     }));
 
-    resp_rx
+    Box::pin(resp_rx)
    }
   },
   None => quote! {
