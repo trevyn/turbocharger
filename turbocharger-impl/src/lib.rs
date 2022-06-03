@@ -201,8 +201,8 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
  let orig_fn_ident = orig_fn.sig.ident.clone();
  let orig_fn_string = orig_fn_ident.to_string();
  let orig_fn_params = orig_fn.sig.inputs.clone();
- let orig_fn_stmts = orig_fn.block.stmts.clone();
- let mut orig_fn_stmts = quote!(#( #orig_fn_stmts )*);
+ let orig_fn_stmts = &orig_fn.block.stmts;
+ let orig_fn_stmts = quote!(#( #orig_fn_stmts )*);
 
  let store_name = format_ident!("_TURBOCHARGER_STORE_{}", orig_fn_ident);
  let dispatch = format_ident!("_TURBOCHARGER_DISPATCH_{}", orig_fn_ident);
@@ -214,22 +214,18 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
  let subscriber_fn_ident = format_ident!("_TURBOCHARGER_SUBSCRIBERFN_{}", orig_fn_ident);
 
  let orig_fn_ret_ty = match orig_fn.sig.output.clone() {
-  syn::ReturnType::Default => None,
-  syn::ReturnType::Type(_, path) => Some(*path),
+  syn::ReturnType::Type(_, path) => *path,
+  syn::ReturnType::Default => parse_quote! { () },
  };
- let stream_inner_ty = orig_fn_ret_ty.as_ref().and_then(extract::extract_stream);
- let result_inner_ty =
-  if stream_inner_ty.is_some() { stream_inner_ty } else { orig_fn_ret_ty.as_ref() }
-   .and_then(extract::extract_result)
-   .cloned();
- let stream_inner_ty = stream_inner_ty.cloned();
+ let stream_inner_ty = extract::extract_stream(&orig_fn_ret_ty);
+ let result_inner_ty = extract::extract_result(stream_inner_ty.unwrap_or(&orig_fn_ret_ty));
  let store_value_ty = if result_inner_ty.is_some() {
   quote! { Result<#result_inner_ty, JsValue> }
  } else {
   quote! { #stream_inner_ty }
  };
 
- let maybe_map_err_jsvalue = match &result_inner_ty {
+ let maybe_map_err_jsvalue = match result_inner_ty {
   Some(_) => quote! { .map_err(|e| ::turbocharger::js_sys::Error::new(&e.to_string()).into()) },
   None => quote! {},
  };
@@ -278,20 +274,7 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
   }
  };
 
- let orig_fn_ret_ty = match (&orig_fn_ret_ty, &stream_inner_ty) {
-  (Some(ty), None) => quote_spanned! {ty.span()=> #ty },
-  (Some(_), Some(ty)) => {
-   orig_fn_stmts = quote!(Box::pin( #orig_fn_stmts ));
-   quote_spanned! {ty.span()=> std::pin::Pin<Box<dyn ::turbocharger::futures_util::stream::Stream<Item = #ty > + Send >> }
-  }
-  (None, _) => quote! { () },
- };
-
- let mut orig_fn = orig_fn;
-
- orig_fn.sig.output = parse_quote! { -> #orig_fn_ret_ty };
-
- let bindgen_ret_ty = match (&stream_inner_ty, &result_inner_ty) {
+ let bindgen_ret_ty = match (stream_inner_ty, result_inner_ty) {
   (None, Some(ty)) => quote! { Result<#ty, JsValue> },
   (Some(_ty), _) => quote! { #store_name },
   (None, None) => quote! { #orig_fn_ret_ty },
@@ -299,6 +282,18 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
  let serialize_ret_ty = match &stream_inner_ty {
   Some(ty) => quote! { #ty },
   None => quote! { #orig_fn_ret_ty },
+ };
+
+ let (orig_fn_stmts, orig_fn_ret_ty) = if let Some(ty) = stream_inner_ty {
+  (
+   quote!(Box::pin( #orig_fn_stmts )),
+   quote_spanned! {ty.span()=> std::pin::Pin<Box<dyn ::turbocharger::futures_util::stream::Stream<Item = #ty > + Send >> },
+  )
+ } else {
+  (
+   quote!(Box::pin( async move { #orig_fn_stmts } )),
+   quote_spanned! {orig_fn_ret_ty.span()=> std::pin::Pin<Box<dyn std::future::Future<Output = #orig_fn_ret_ty > + Send >> },
+  )
  };
 
  let tuple_indexes = (0..orig_fn_params.len()).map(syn::Index::from);
@@ -323,7 +318,14 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
 
  let orig_fn_params_maybe_comma = if orig_fn_params.is_empty() { quote!() } else { quote!( , ) };
 
- orig_fn.block = parse_quote!({ #orig_fn_stmts });
+ let mut orig_fn = orig_fn;
+ orig_fn.sig.asyncness = None;
+ orig_fn.sig.output = parse_quote! { -> #orig_fn_ret_ty };
+ orig_fn.block = parse_quote!({
+  let remote_addr: Option<std::net::SocketAddr> = None;
+  let user_agent: Option<String> = None;
+  #orig_fn_stmts
+ });
 
  let mut remote_impl_fn = orig_fn.clone();
  remote_impl_fn.sig.ident = remote_impl_ident.clone();
@@ -333,12 +335,7 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
   #orig_fn_params_maybe_comma
   #orig_fn_params
  );
-
- orig_fn.block = parse_quote!({
-  let remote_addr: Option<std::net::SocketAddr> = None;
-  let user_agent: Option<String> = None;
-  #orig_fn_stmts
- });
+ remote_impl_fn.block = parse_quote!({ #orig_fn_stmts });
 
  let executebody = match &stream_inner_ty {
   Some(_ty) => quote! {
@@ -422,20 +419,22 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
   },
   None => quote! {
    #[cfg(target_arch = "wasm32")]
-   pub async fn #orig_fn_ident(#orig_fn_params) -> #orig_fn_ret_ty {
-    let tx = ::turbocharger::_Transaction::new();
-    let req = ::turbocharger::bincode::serialize(&#req {
-     typetag_const_one: 1,
-     dispatch_name: #orig_fn_string,
-     txid: tx.txid,
-     params: (#( #orig_fn_param_names ),* #orig_fn_params_maybe_comma),
+   pub fn #orig_fn_ident(#orig_fn_params) -> #orig_fn_ret_ty {
+    Box::pin(async move {
+     let tx = ::turbocharger::_Transaction::new();
+     let req = ::turbocharger::bincode::serialize(&#req {
+      typetag_const_one: 1,
+      dispatch_name: #orig_fn_string,
+      txid: tx.txid,
+      params: (#( #orig_fn_param_names ),* #orig_fn_params_maybe_comma),
+     })
+     .unwrap();
+     tx.send_ws(req);
+     let response = tx.resp().await;
+     let #resp { result, .. } =
+      ::turbocharger::bincode::deserialize(&response).unwrap();
+     result
     })
-    .unwrap();
-    tx.send_ws(req);
-    let response = tx.resp().await;
-    let #resp { result, .. } =
-     ::turbocharger::bincode::deserialize(&response).unwrap();
-    result
    }
   },
  };
