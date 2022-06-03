@@ -82,8 +82,10 @@ mod tests {
   );
   assert_eq!(
    extract_stream(
-    &syn::parse_str::<syn::Type>("foo::Pin<wee::Box<dyn turbocharger_thing::Stream<Item = u32>>>")
-     .unwrap()
+    &syn::parse_str::<syn::Type>(
+     "foo::Pin<wee::Box<dyn turbocharger_thing::Stream<Item = u32> + Send >>"
+    )
+    .unwrap()
    ),
    Some(&syn::parse_str::<syn::Type>("u32").unwrap())
   );
@@ -100,7 +102,7 @@ mod tests {
   assert_eq!(
    extract_stream(
     &syn::parse_str::<syn::Type>(
-     "Pin<Box<dyn Stream<Item = Result<Vec<u8>, tracked::StringError>>>>"
+     "Pin<Box<dyn Stream<Item = Result<Vec<u8>, tracked::StringError>> + Send >>"
     )
     .unwrap()
    ),
