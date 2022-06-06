@@ -7,9 +7,15 @@ use std::sync::Mutex;
 
 pub use turbocharger_impl::{backend, server_only, wasm_only};
 
+#[cfg(feature = "dioxus")]
+mod dioxus;
+
 pub mod prelude {
+ pub use turbocharger_impl::{backend, server_only, wasm_only};
  #[cfg(not(target_arch = "wasm32"))]
  pub use typetag;
+ #[cfg(feature = "dioxus")]
+ pub use {crate::dioxus::*, ::dioxus::prelude::*};
  #[cfg(any(feature = "wasm", target_arch = "wasm32"))]
  pub use {wasm_bindgen, wasm_bindgen::prelude::*, wasm_bindgen_futures};
 }
@@ -81,11 +87,11 @@ macro_rules! console_log {
  ($($t:tt)*) => ( ::turbocharger::call_console_log(&format_args!($($t)*).to_string()); )
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-#[macro_export]
-macro_rules! console_log {
- ($($t:tt)*) => ( let _ = format_args!($($t)*); )
-}
+// #[cfg(not(target_arch = "wasm32"))]
+// #[macro_export]
+// macro_rules! console_log {
+//  ($($t:tt)*) => ( let _ = format_args!($($t)*); )
+// }
 
 #[wasm_only]
 macro_rules! tc_console_log {
@@ -106,6 +112,7 @@ pub fn call_console_log(msg: &str) {
 #[wasm_bindgen]
 extern "C" {
  #[wasm_bindgen(js_namespace = console)]
+ #[allow(unsafe_code)]
  fn log(s: &str);
 }
 
@@ -229,6 +236,7 @@ pub fn set_socket_url(url: String) {
 }
 
 #[wasm_only]
+#[allow(dead_code)]
 async fn ensure_ws_connected() {
  let mut g = G.lock().unwrap();
 
