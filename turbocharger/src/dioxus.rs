@@ -3,6 +3,13 @@ use futures_util::{Stream, StreamExt};
 use std::future::Future;
 use std::pin::Pin;
 
+#[macro_export]
+macro_rules! to_owned {
+    ($($es:ident),+) => {$(
+        let $es = $es.to_owned();
+    )*}
+}
+
 pub enum Poll<T> {
  Pending,
  Ready(T),

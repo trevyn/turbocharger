@@ -17,6 +17,7 @@ pub mod prelude {
  #[cfg(feature = "dioxus")]
  pub use {
   crate::dioxus::{use_backend, use_backend_map, use_stream, use_stream_map, Pending, Ready},
+  crate::to_owned,
   ::dioxus::prelude::*,
  };
  #[cfg(any(feature = "wasm", target_arch = "wasm32"))]
