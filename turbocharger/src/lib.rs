@@ -11,6 +11,7 @@ pub use turbocharger_impl::{backend, server_only, wasm_only};
 mod dioxus;
 
 pub mod prelude {
+ pub use ::tracked::{self, tracked};
  pub use turbocharger_impl::{backend, server_only, wasm_only};
  #[cfg(not(target_arch = "wasm32"))]
  pub use typetag;
