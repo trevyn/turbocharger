@@ -1,61 +1,26 @@
 use dioxus::prelude::*;
-use futures_util::{Stream, StreamExt};
-use std::future::Future;
-use std::pin::Pin;
 
-#[macro_export]
-macro_rules! to_owned {
-    ($($es:ident),+) => {$(
-        let $es = $es.to_owned();
-    )*}
-}
-
-pub enum Poll<T> {
- Pending,
- Ready(T),
-}
-
-pub use Poll::*;
-
-pub fn use_stream<T>(
+pub fn use_stream<R, S, T, U>(
  cx: &ScopeState,
- stream: impl FnOnce() -> Pin<Box<(dyn Stream<Item = T>)>> + 'static,
-) -> &UseState<Poll<T>> {
- use_stream_map(cx, stream, std::convert::identity)
-}
-
-pub fn use_stream_map<'a, T, U>(
- cx: &'a ScopeState,
- stream: impl FnOnce() -> Pin<Box<(dyn Stream<Item = T>)>> + 'static,
- map_fn: impl Fn(T) -> U + 'static,
-) -> &'a UseState<Poll<U>> {
- let data = use_state(cx, || Pending);
- let data_cloned = data.clone();
- let _: &'a CoroutineHandle<()> = use_coroutine(cx, |_| async move {
-  let mut conn = stream();
-  while let Some(r) = conn.next().await {
-   data_cloned.set(Ready(map_fn(r)));
+ stream: impl FnOnce() -> S + 'static,
+ initial: impl FnOnce() -> U,
+ cb: impl Fn(&UseState<U>, Option<T>) -> R + 'static,
+) -> &UseState<U>
+where
+ S: futures_util::Stream<Item = T>,
+{
+ let state = use_state(cx, initial);
+ let state_cloned = state.clone();
+ let _: &CoroutineHandle<()> = use_coroutine(cx, |_| async move {
+  let stream = stream();
+  futures_util::pin_mut!(stream);
+  while let Some(val) = futures_util::StreamExt::next(&mut stream).await {
+   cb(&state_cloned, Some(val));
   }
+  cb(&state_cloned, None);
  });
- data
+ state
 }
 
-pub fn use_backend<T>(
- cx: &ScopeState,
- fut: impl FnOnce() -> Pin<Box<(dyn Future<Output = T>)>> + 'static,
-) -> &UseState<Poll<T>> {
- use_backend_map(cx, fut, std::convert::identity)
-}
-
-pub fn use_backend_map<'a, T, U>(
- cx: &'a ScopeState,
- fut: impl FnOnce() -> Pin<Box<(dyn Future<Output = T>)>> + 'static,
- map_fn: impl Fn(T) -> U + 'static,
-) -> &'a UseState<Poll<U>> {
- let data = use_state(cx, || Pending);
- let data_cloned = data.clone();
- let _: &'a CoroutineHandle<()> = use_coroutine(cx, |_| async move {
-  data_cloned.set(Ready(map_fn(fut().await)));
- });
- data
-}
+// let _ = use_stream(&cx, (), |_| make_stream(), || None, |s, v| v.map(|v| s.set(Some(v))));
+// let _ = use_stream(&cx, (), |_| make_stream(), Vec::new, |s, v| v.map(|v| s.make_mut().push(v)));

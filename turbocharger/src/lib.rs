@@ -15,11 +15,7 @@ pub mod prelude {
  #[cfg(not(target_arch = "wasm32"))]
  pub use typetag;
  #[cfg(feature = "dioxus")]
- pub use {
-  crate::dioxus::{use_backend, use_backend_map, use_stream, use_stream_map, Pending, Ready},
-  crate::to_owned,
-  ::dioxus::prelude::*,
- };
+ pub use {crate::dioxus::use_stream, ::dioxus::prelude::*};
  #[cfg(any(feature = "wasm", target_arch = "wasm32"))]
  pub use {wasm_bindgen, wasm_bindgen::prelude::*, wasm_bindgen_futures};
 }
