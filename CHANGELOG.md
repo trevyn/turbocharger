@@ -5,7 +5,7 @@
 ### Changed
 
 - Renamed `axum_server` feature to just `axum` thanks to Rust 1.60 namespaced features.
-- MSRV is now Rust 1.60
+- MSRV is now Rust 1.62
 
 ## 0.3.0 - 2022-03-05
 

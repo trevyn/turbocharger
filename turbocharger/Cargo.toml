@@ -46,7 +46,7 @@ tokio = "1"
 tokio-rustls = {version = "0.23", optional = true}
 tokio-stream = {version = "0.1", features = ["net"]}
 turbosql = {version = "0.6", optional = true}
-typetag = "0.1"
+typetag = "0.2"
 
 wasm-bindgen = {version = "0.2", optional = true}
 wasm-bindgen-futures = {version = "0.4", optional = true}
