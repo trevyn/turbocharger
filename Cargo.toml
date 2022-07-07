@@ -2,11 +2,4 @@
 members = [
   "turbocharger",
   "turbocharger-impl",
-  "turbocharger-template",
 ]
-
-[patch.crates-io]
-turbocharger = {path = './turbocharger'}
-
-[patch.'https://github.com/trevyn/turbocharger']
-turbocharger = {path = './turbocharger'}

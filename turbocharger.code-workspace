@@ -1,0 +1,18 @@
+{
+ "folders": [
+  {
+   "path": "."
+  },
+  {
+   "path": "../turbocharger-template-dioxus"
+  },
+  {
+   "path": "../turbocharger-template-svelte"
+  }
+ ],
+ "settings": {
+  "rust-analyzer.checkOnSave.command": "clippy",
+  "rust-analyzer.checkOnSave.features": "all",
+  "rust-analyzer.cargo.features": "all"
+ }
+}

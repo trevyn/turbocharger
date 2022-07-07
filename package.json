@@ -1,6 +1,5 @@
 {
  "scripts": {
-  "submodule-update": "git submodule update --remote",
   "mdbook-open": "cd guide && mdbook serve --open"
  }
 }

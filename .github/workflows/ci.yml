@@ -12,7 +12,7 @@ jobs:
   checklinks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - uses: trevyn/lychee-action@v1
         id: lychee
@@ -37,7 +37,7 @@ jobs:
 #               1.62 is minimum rustc version
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         # with:
         #   ref: ${{ matrix.branch }}
 
@@ -49,19 +49,21 @@ jobs:
 
       - run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
-      - run: git submodule update --init
-      - run: git submodule update --remote
+      - run: git clone https://github.com/trevyn/turbocharger-template-svelte.git ../turbocharger-template-svelte
+
+      - run: echo -e "\n[patch.crates-io]\nturbocharger = {path = \"../turbocharger/turbocharger\"}" >> ../turbocharger-template-svelte/Cargo.toml
 
       - name: cargo test turbocharger-impl
         run: cargo test -- --nocapture
         working-directory: 'turbocharger-impl'
 
       - run: npm run build
-        working-directory: 'turbocharger-template'
+        working-directory: '../turbocharger-template-svelte'
       - run: npx audit-ci --low
-        working-directory: 'turbocharger-template'
+        working-directory: '../turbocharger-template-svelte'
       - run: npm run test-ci
-        working-directory: 'turbocharger-template'
+        working-directory: '../turbocharger-template-svelte'
+
       - run: cargo doc --no-deps
         working-directory: 'turbocharger'
 
@@ -71,7 +73,7 @@ jobs:
     if: ${{ startsWith(github.event.head_commit.message, 'turbocharger@') && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: 'true'
 
