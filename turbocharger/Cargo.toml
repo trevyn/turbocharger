@@ -48,6 +48,7 @@ tokio-stream = {version = "0.1", features = ["net"]}
 turbosql = {version = "0.6", optional = true}
 typetag = "0.2"
 
+js-sys = {version = "0.3", optional = true}
 wasm-bindgen = {version = "0.2", optional = true}
 wasm-bindgen-futures = {version = "0.4", optional = true}
 web-sys = {version = "0.3", features = ["Location", "Window"], optional = true}
@@ -60,7 +61,7 @@ default = ["console_error_panic_hook"]
 full = ["axum", "dioxus", "tls", "svelte"]
 svelte = ["turbocharger-impl/svelte"]
 tls = ["tokio-rustls", "rustls-pemfile", "hyper", "acme-lib", "turbosql"]
-wasm = ["wasm-bindgen", "wasm-bindgen-futures", "web-sys", "ws_stream_wasm"]
+wasm = ["js-sys", "wasm-bindgen", "wasm-bindgen-futures", "web-sys", "ws_stream_wasm"]
 
 [dev-dependencies]
 wasm-bindgen = "0.2"

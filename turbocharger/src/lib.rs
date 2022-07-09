@@ -3,8 +3,10 @@
 
 use futures_util::{SinkExt, StreamExt};
 use once_cell::sync::Lazy;
+use std::collections::HashMap;
 use std::sync::Mutex;
 
+// currently only for backward-compat, maybe remove for turbocharger 0.4?
 pub use turbocharger_impl::{backend, server_only, wasm_only};
 
 #[cfg(feature = "dioxus")]
@@ -12,13 +14,17 @@ mod dioxus;
 
 pub mod prelude {
  pub use ::tracked::{self, tracked};
- pub use turbocharger_impl::{backend, server_only, wasm_only};
- #[cfg(not(target_arch = "wasm32"))]
- pub use typetag;
- #[cfg(feature = "dioxus")]
- pub use {crate::dioxus::use_stream, ::dioxus::prelude::*};
+ pub use turbocharger_impl::{backend, server_only, wasm_only, wasm_only as frontend};
+ #[cfg(all(feature = "dioxus", any(feature = "wasm", target_arch = "wasm32")))]
+ pub use {crate::dioxus::use_stream, ::dioxus::core::to_owned, ::dioxus::prelude::*};
  #[cfg(any(feature = "wasm", target_arch = "wasm32"))]
- pub use {wasm_bindgen, wasm_bindgen::prelude::*, wasm_bindgen_futures};
+ pub use {crate::wait_ms, wasm_bindgen, wasm_bindgen::prelude::*, wasm_bindgen_futures};
+ #[cfg(not(target_arch = "wasm32"))]
+ pub use {
+  async_stream::{stream, try_stream},
+  turbocharger_impl::{connection_local, remote_addr, user_agent},
+  typetag,
+ };
 }
 
 #[wasm_only]
@@ -40,6 +46,15 @@ pub use {async_stream, async_trait::async_trait, stream_cancel, typetag};
 pub use js_sys;
 
 #[server_only]
+#[derive(Clone)]
+pub struct ConnectionInfo {
+ pub remote_addr: Option<std::net::SocketAddr>,
+ pub user_agent: Option<String>,
+ pub connection_local:
+  std::sync::Arc<tokio::sync::Mutex<HashMap<std::any::TypeId, Box<dyn std::any::Any + Send>>>>,
+}
+
+#[server_only]
 #[doc(hidden)]
 #[typetag::serde]
 #[async_trait]
@@ -48,8 +63,7 @@ pub trait RPC: Send + Sync {
   &self,
   sender: Box<dyn Fn(Vec<u8>) + Send>,
   tripwire: Option<stream_cancel::Tripwire>,
-  remote_addr: Option<std::net::SocketAddr>,
-  user_agent: Option<String>,
+  _turbocharger_connection_info: Option<ConnectionInfo>,
  );
  fn txid(&self) -> i64;
 }
@@ -60,7 +74,7 @@ struct Globals {
  #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
  socket_url: Option<String>,
  next_txid: i64,
- senders: std::collections::HashMap<i64, futures_channel::mpsc::UnboundedSender<Vec<u8>>>,
+ senders: HashMap<i64, futures_channel::mpsc::UnboundedSender<Vec<u8>>>,
 }
 
 impl Default for Globals {
@@ -214,7 +228,12 @@ pub async fn spawn_udp_server(port: u16) -> Result<(), tracked::StringError> {
         send_socket_cloned.send_to(&response, peer).await.unwrap();
        });
       });
-      target_func.execute(sender, None, Some(peer), Some("udp".into())).await;
+      let connection_info = ConnectionInfo {
+       remote_addr: Some(peer),
+       user_agent: Some("udp".into()),
+       connection_local: Default::default(),
+      };
+      target_func.execute(sender, None, Some(connection_info)).await;
      });
     }
     txid => {
@@ -239,52 +258,68 @@ pub fn set_socket_url(url: String) {
 #[wasm_only]
 #[allow(dead_code)]
 async fn ensure_ws_connected() {
- let mut g = G.lock().unwrap();
+ let (socket_url, mut channel_rx) = {
+  let mut g = G.lock().unwrap();
 
- if g.socket_url.is_none() {
-  g.socket_url = Some({
-   let location = web_sys::window().unwrap().location();
-   let protocol = match location.protocol().unwrap().as_str() {
-    "https:" => "wss:",
-    _ => "ws:",
-   };
-   format!("{}//{}/turbocharger_socket", protocol, location.host().unwrap())
-  });
- }
- let socket_url = g.socket_url.clone().unwrap();
+  if g.socket_url.is_none() {
+   g.socket_url = Some({
+    let location = web_sys::window().unwrap().location();
+    let protocol = match location.protocol().unwrap().as_str() {
+     "https:" => "wss:",
+     _ => "ws:",
+    };
+    format!("{}//{}/turbocharger_socket", protocol, location.host().unwrap())
+   });
+  }
+  let socket_url = g.socket_url.clone().unwrap();
 
- if g.channel_tx.is_none() {
-  let (channel_tx, mut channel_rx) = futures_channel::mpsc::unbounded();
+  if g.channel_tx.is_some() {
+   return;
+  }
+
+  let (channel_tx, channel_rx) = futures_channel::mpsc::unbounded();
   g.channel_tx = Some(channel_tx);
 
-  drop(g);
+  (socket_url, channel_rx)
+ };
 
-  tc_console_log!("connecting to {}", socket_url);
+ tc_console_log!("connecting to {}", socket_url);
 
-  let (_ws, wsio) = ws_stream_wasm::WsMeta::connect(socket_url, None).await.unwrap();
+ let (_ws, wsio) = ws_stream_wasm::WsMeta::connect(socket_url, None).await.unwrap();
 
-  tc_console_log!("connected");
+ tc_console_log!("connected");
 
-  let (mut ws_tx, mut ws_rx) = wsio.split();
+ let (mut ws_tx, mut ws_rx) = wsio.split();
 
-  wasm_bindgen_futures::spawn_local(async move {
-   while let Some(msg) = ws_rx.next().await {
-    if let ws_stream_wasm::WsMessage::Binary(msg) = msg {
-     let txid = i64::from_le_bytes(msg[0..8].try_into().unwrap());
-     let mut sender = G.lock().unwrap().senders.get(&txid).unwrap().clone();
-     sender.send(msg).await.unwrap();
-    }
+ wasm_bindgen_futures::spawn_local(async move {
+  while let Some(msg) = ws_rx.next().await {
+   if let ws_stream_wasm::WsMessage::Binary(msg) = msg {
+    let txid = i64::from_le_bytes(msg[0..8].try_into().unwrap());
+    let mut sender = G.lock().unwrap().senders.get(&txid).unwrap().clone();
+    sender.send(msg).await.unwrap();
    }
-   tc_console_log!("ws_rx ENDED");
-  });
+  }
+  tc_console_log!("ws_rx ENDED");
+ });
 
-  wasm_bindgen_futures::spawn_local(async move {
-   while let Some(msg) = channel_rx.next().await {
-    ws_tx.send(ws_stream_wasm::WsMessage::Binary(msg)).await.unwrap();
-   }
-   tc_console_log!("rx ENDED");
-  });
- }
+ wasm_bindgen_futures::spawn_local(async move {
+  while let Some(msg) = channel_rx.next().await {
+   ws_tx.send(ws_stream_wasm::WsMessage::Binary(msg)).await.unwrap();
+  }
+  tc_console_log!("rx ENDED");
+ });
+}
+
+#[wasm_only]
+pub async fn wait_ms(ms: i32) {
+ wasm_bindgen_futures::JsFuture::from(js_sys::Promise::new(&mut |yes, _| {
+  web_sys::window()
+   .unwrap()
+   .set_timeout_with_callback_and_timeout_and_arguments_0(&yes, ms)
+   .unwrap();
+ }))
+ .await
+ .unwrap();
 }
 
 #[wasm_only]

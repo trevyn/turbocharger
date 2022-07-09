@@ -110,10 +110,8 @@ pub async fn ws_handler(
  user_agent: Option<TypedHeader<headers::UserAgent>>,
  ConnectInfo(addr): ConnectInfo<SocketAddr>,
 ) -> impl IntoResponse {
- let mut ua_str = String::new();
- if let Some(TypedHeader(ua)) = user_agent {
-  ua_str = ua.as_str().into();
- }
+ let ua_str =
+  if let Some(TypedHeader(ua)) = user_agent { ua.as_str().into() } else { String::new() };
 
  ws.on_upgrade(move |ws| handle_socket(ws, ua_str, addr))
 }
@@ -123,6 +121,12 @@ async fn handle_socket(ws: WebSocket, ua: String, addr: SocketAddr) {
  let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
  let mut rx = tokio_stream::wrappers::UnboundedReceiverStream::new(rx);
  let triggers: Arc<Mutex<HashMap<i64, stream_cancel::Trigger>>> = Default::default();
+
+ let connection_info = super::ConnectionInfo {
+  remote_addr: Some(addr),
+  user_agent: Some(ua),
+  connection_local: Default::default(),
+ };
 
  tokio::task::spawn(async move {
   while let Some(msg) = rx.next().await {
@@ -145,7 +149,7 @@ async fn handle_socket(ws: WebSocket, ua: String, addr: SocketAddr) {
   };
   let tx_clone = tx.clone();
   let triggers_clone = triggers.clone();
-  let ua_clone = ua.clone();
+  let connection_info_clone = connection_info.clone();
   tokio::task::spawn(async move {
    let data = msg.clone().into_data();
    if !data.is_empty() {
@@ -163,7 +167,7 @@ async fn handle_socket(ws: WebSocket, ua: String, addr: SocketAddr) {
      trigger.cancel();
     } else {
      let sender = Box::new(move |response| tx_clone.send(Message::Binary(response)).unwrap());
-     target_func.execute(sender, Some(tripwire), Some(addr), Some(ua_clone)).await;
+     target_func.execute(sender, Some(tripwire), Some(connection_info_clone)).await;
     }
    }
   });

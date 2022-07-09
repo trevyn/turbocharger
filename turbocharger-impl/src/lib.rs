@@ -12,6 +12,53 @@ use proc_macro_error::{abort, proc_macro_error};
 use quote::{format_ident, quote, quote_spanned};
 use syn::{parse_macro_input, parse_quote, spanned::Spanned};
 
+#[proc_macro]
+pub fn remote_addr(_: proc_macro::TokenStream) -> proc_macro::TokenStream {
+ quote!(_turbocharger_connection_info.as_ref().and_then(|ref i| i.remote_addr)).into()
+}
+
+#[proc_macro]
+pub fn user_agent(_: proc_macro::TokenStream) -> proc_macro::TokenStream {
+ quote!(_turbocharger_connection_info.as_ref().and_then(|ref i| i.user_agent.as_ref())).into()
+}
+
+struct ConnectionLocal {
+ pub ident: syn::Ident,
+ pub ty: syn::Type,
+}
+
+impl syn::parse::Parse for ConnectionLocal {
+ fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+  let ident = input.parse()?;
+  let _: syn::Token![:] = input.parse()?;
+  let ty = input.parse()?;
+  Ok(Self { ident, ty })
+ }
+}
+
+#[proc_macro]
+pub fn connection_local(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+ let ConnectionLocal { ident, ty } = parse_macro_input!(input as ConnectionLocal);
+
+ quote! {
+  let mut _turbocharger_connection_local_map = match _turbocharger_connection_info.as_ref() {
+   Some(c) => Some(c.connection_local.lock().await),
+   None => None,
+  };
+
+  let #ident = {
+   _turbocharger_connection_local_map
+    .as_mut()
+    .unwrap()
+    .entry(std::any::TypeId::of::< #ty >())
+    .or_insert_with(|| Box::new( #ty ::default()))
+    .downcast_mut::< #ty >()
+    .unwrap()
+  };
+ }
+ .into()
+}
+
 /// Apply this to an item to make it available on the server target only.
 ///
 /// Only adds `#[cfg(not(target_arch = "wasm32"))]`
@@ -284,16 +331,10 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
   None => quote! { #orig_fn_ret_ty },
  };
 
- let (orig_fn_stmts, orig_fn_ret_ty) = if let Some(ty) = stream_inner_ty {
-  (
-   quote!(Box::pin( #orig_fn_stmts )),
-   quote_spanned! {ty.span()=> std::pin::Pin<Box<dyn ::turbocharger::futures_util::stream::Stream<Item = #ty > + Send >> },
-  )
+ let orig_fn_ret_ty = if let Some(ty) = stream_inner_ty {
+  quote_spanned! {ty.span()=> impl ::turbocharger::futures_util::stream::Stream<Item = #ty > }
  } else {
-  (
-   quote!(Box::pin( async move { #orig_fn_stmts } )),
-   quote_spanned! {orig_fn_ret_ty.span()=> std::pin::Pin<Box<dyn std::future::Future<Output = #orig_fn_ret_ty > + Send >> },
-  )
+  quote_spanned! {orig_fn_ret_ty.span()=> #orig_fn_ret_ty }
  };
 
  let tuple_indexes = (0..orig_fn_params.len()).map(syn::Index::from);
@@ -319,19 +360,16 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
  let orig_fn_params_maybe_comma = if orig_fn_params.is_empty() { quote!() } else { quote!( , ) };
 
  let mut orig_fn = orig_fn;
- orig_fn.sig.asyncness = None;
  orig_fn.sig.output = parse_quote! { -> #orig_fn_ret_ty };
  orig_fn.block = parse_quote!({
-  let remote_addr: Option<std::net::SocketAddr> = None;
-  let user_agent: Option<String> = None;
+  let _turbocharger_connection_info: Option<::turbocharger::ConnectionInfo> = None;
   #orig_fn_stmts
  });
 
  let mut remote_impl_fn = orig_fn.clone();
  remote_impl_fn.sig.ident = remote_impl_ident.clone();
  remote_impl_fn.sig.inputs = parse_quote!(
-  remote_addr: Option<std::net::SocketAddr>,
-  user_agent: Option<String>
+  _turbocharger_connection_info: Option<::turbocharger::ConnectionInfo>
   #orig_fn_params_maybe_comma
   #orig_fn_params
  );
@@ -341,7 +379,7 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
   Some(_ty) => quote! {
    use ::turbocharger::futures_util::stream::StreamExt as _;
    use ::turbocharger::stream_cancel::StreamExt as _;
-   let stream = #remote_impl_ident(remote_addr, user_agent #orig_fn_params_maybe_comma #( self.params. #tuple_indexes .clone() ),*);
+   let stream = #remote_impl_ident(_turbocharger_connection_info #orig_fn_params_maybe_comma #( self.params. #tuple_indexes .clone() ),*);
    ::turbocharger::futures_util::pin_mut!(stream);
 
    if let Some(tripwire) = tripwire {
@@ -365,7 +403,7 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
    }
   },
   None => quote! {
-   let result = #remote_impl_ident(remote_addr, user_agent #orig_fn_params_maybe_comma #( self.params. #tuple_indexes .clone() ),*).await;
+   let result = #remote_impl_ident(_turbocharger_connection_info #orig_fn_params_maybe_comma #( self.params. #tuple_indexes .clone() ),*).await;
    let response = #resp {
     txid: self.txid,
     result
@@ -414,27 +452,25 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
      });
     }));
 
-    Box::pin(resp_rx)
+    resp_rx
    }
   },
   None => quote! {
    #[cfg(target_arch = "wasm32")]
-   pub fn #orig_fn_ident(#orig_fn_params) -> #orig_fn_ret_ty {
-    Box::pin(async move {
-     let tx = ::turbocharger::_Transaction::new();
-     let req = ::turbocharger::bincode::serialize(&#req {
-      typetag_const_one: 1,
-      dispatch_name: #orig_fn_string,
-      txid: tx.txid,
-      params: (#( #orig_fn_param_names ),* #orig_fn_params_maybe_comma),
-     })
-     .unwrap();
-     tx.send_ws(req);
-     let response = tx.resp().await;
-     let #resp { result, .. } =
-      ::turbocharger::bincode::deserialize(&response).unwrap();
-     result
+   pub async fn #orig_fn_ident(#orig_fn_params) -> #orig_fn_ret_ty {
+    let tx = ::turbocharger::_Transaction::new();
+    let req = ::turbocharger::bincode::serialize(&#req {
+     typetag_const_one: 1,
+     dispatch_name: #orig_fn_string,
+     txid: tx.txid,
+     params: (#( #orig_fn_param_names ),* #orig_fn_params_maybe_comma),
     })
+    .unwrap();
+    tx.send_ws(req);
+    let response = tx.resp().await;
+    let #resp { result, .. } =
+     ::turbocharger::bincode::deserialize(&response).unwrap();
+    result
    }
   },
  };
@@ -531,10 +567,12 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
   use turbocharger::prelude::*;
 
   #[cfg(not(target_arch = "wasm32"))]
+  #[tracked]
   #orig_fn
 
   #[cfg(not(target_arch = "wasm32"))]
   #[allow(non_snake_case)]
+  #[tracked]
   #remote_impl_fn
 
   #[cfg(not(target_arch = "wasm32"))]
@@ -546,8 +584,7 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
     &self,
     sender: Box<dyn Fn(Vec<u8>) + Send>,
     tripwire: Option<::turbocharger::stream_cancel::Tripwire>,
-    remote_addr: Option<std::net::SocketAddr>,
-    user_agent: Option<String>
+    _turbocharger_connection_info: Option<::turbocharger::ConnectionInfo>
    ) {
     #executebody
    }
@@ -632,7 +669,7 @@ fn read_backend_api_rs() -> syn::File {
 }
 
 fn write_backend_api_rs(file: syn::File) {
- let mut output = "// This file is auto-generated by Turbocharger.\n// Check it into version control to track API changes over time.\n".to_string();
+ let mut output = "// This file is auto-generated by Turbocharger.\n// Check it into version control to track API changes over time.\n// To regenerate: \"cargo clean && rm backend_api.rs && cargo check\"\n".to_string();
  let mut items = file.items;
  items.sort_by_key(|item| match item {
   syn::Item::Struct(s) => s.ident.to_string().to_lowercase(),

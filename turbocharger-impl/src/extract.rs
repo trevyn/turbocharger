@@ -24,12 +24,12 @@ fn generic_path_with_ident<'a>(path: &'a syn::Path, ident: &str) -> Option<&'a s
 pub fn extract_stream(ty: &syn::Type) -> Option<&syn::Type> {
  let bounds = match ty {
   syn::Type::ImplTrait(syn::TypeImplTrait { bounds, .. }) => bounds,
-  syn::Type::Path(_) => {
-   match generic_type_with_ident(generic_type_with_ident(ty, "Pin")?, "Box")? {
-    syn::Type::TraitObject(syn::TypeTraitObject { bounds, .. }) => bounds,
-    _ => return None,
-   }
-  }
+  // syn::Type::Path(_) => {
+  //  match generic_type_with_ident(generic_type_with_ident(ty, "Pin")?, "Box")? {
+  //   syn::Type::TraitObject(syn::TypeTraitObject { bounds, .. }) => bounds,
+  //   _ => return None,
+  //  }
+  // }
   _ => return None,
  };
 
@@ -80,15 +80,15 @@ mod tests {
    ),
    Some(&syn::parse_str::<syn::Type>("u32").unwrap())
   );
-  assert_eq!(
-   extract_stream(
-    &syn::parse_str::<syn::Type>(
-     "foo::Pin<wee::Box<dyn turbocharger_thing::Stream<Item = u32> + Send >>"
-    )
-    .unwrap()
-   ),
-   Some(&syn::parse_str::<syn::Type>("u32").unwrap())
-  );
+  // assert_eq!(
+  //  extract_stream(
+  //   &syn::parse_str::<syn::Type>(
+  //    "foo::Pin<wee::Box<dyn turbocharger_thing::Stream<Item = u32> + Send >>"
+  //   )
+  //   .unwrap()
+  //  ),
+  //  Some(&syn::parse_str::<syn::Type>("u32").unwrap())
+  // );
   assert_eq!(
    extract_stream(
     &syn::parse_str::<syn::Type>("impl Stream<Item = Result<i32, anyhow::Error>>").unwrap()
@@ -99,15 +99,15 @@ mod tests {
    extract_stream(&syn::parse_str::<syn::Type>("impl Stream<Item = anyhow::Result<i32>>").unwrap()),
    Some(&syn::parse_str::<syn::Type>("anyhow::Result<i32>").unwrap())
   );
-  assert_eq!(
-   extract_stream(
-    &syn::parse_str::<syn::Type>(
-     "Pin<Box<dyn Stream<Item = Result<Vec<u8>, tracked::StringError>> + Send >>"
-    )
-    .unwrap()
-   ),
-   Some(&syn::parse_str::<syn::Type>("Result<Vec<u8>, tracked::StringError>").unwrap())
-  );
+  // assert_eq!(
+  //  extract_stream(
+  //   &syn::parse_str::<syn::Type>(
+  //    "Pin<Box<dyn Stream<Item = Result<Vec<u8>, tracked::StringError>> + Send >>"
+  //   )
+  //   .unwrap()
+  //  ),
+  //  Some(&syn::parse_str::<syn::Type>("Result<Vec<u8>, tracked::StringError>").unwrap())
+  // );
 
   assert_eq!(extract_stream(&syn::parse_str::<syn::Type>("u32").unwrap()), None);
  }
