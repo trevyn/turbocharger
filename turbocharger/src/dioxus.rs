@@ -19,6 +19,7 @@ where
   while let Some(value) = futures_util::StreamExt::next(&mut stream).await {
    let mut container = state_cloned.write();
    callback(&mut *container, value);
+   state_cloned.needs_update();
   }
  });
 
