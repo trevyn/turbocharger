@@ -15,10 +15,12 @@ mod dioxus;
 pub mod prelude {
  pub use ::tracked::{self, tracked};
  pub use turbocharger_impl::{backend, server_only, wasm_only, wasm_only as frontend};
+ #[cfg(any(feature = "wasm", target_arch = "wasm32"))]
+ pub use {
+  crate::console_log, crate::wait_ms, wasm_bindgen, wasm_bindgen::prelude::*, wasm_bindgen_futures,
+ };
  #[cfg(all(feature = "dioxus", any(feature = "wasm", target_arch = "wasm32")))]
  pub use {crate::dioxus::use_stream, ::dioxus::core::to_owned, ::dioxus::prelude::*};
- #[cfg(any(feature = "wasm", target_arch = "wasm32"))]
- pub use {crate::wait_ms, wasm_bindgen, wasm_bindgen::prelude::*, wasm_bindgen_futures};
  #[cfg(not(target_arch = "wasm32"))]
  pub use {
   async_stream::{stream, try_stream},
@@ -96,7 +98,7 @@ static G: Lazy<Mutex<Globals>> = Lazy::new(Mutex::default);
 static UDP_SOCKET: Lazy<Mutex<Option<std::sync::Arc<tokio::net::UdpSocket>>>> =
  Lazy::new(Mutex::default);
 
-#[wasm_only]
+#[cfg(any(feature = "wasm", target_arch = "wasm32"))]
 #[macro_export]
 macro_rules! console_log {
  ($($t:tt)*) => ( ::turbocharger::call_console_log(&format_args!($($t)*).to_string()); )
