@@ -5,8 +5,8 @@ edition = "2021"
 license = "MIT OR Apache-2.0 OR CC0-1.0"
 name = "turbocharger-impl"
 repository = "https://github.com/trevyn/turbocharger"
-rust-version = "1.60"
-version = "0.3.0"
+rust-version = "1.62"
+version = "0.4.0"
 
 [lib]
 proc-macro = true

@@ -5,7 +5,7 @@
   "update-js-deps": "rm -rf node_modules && rm -rf package-lock.json && npm install"
  },
  "devDependencies": {
-  "@esm-bundle/chai": "^4",
+  "@esm-bundle/chai": "4.3.4-fix.0",
   "@web/dev-server-esbuild": "^0.3",
   "@web/test-runner": "^0.13",
   "@web/test-runner-puppeteer": "^0.10",
