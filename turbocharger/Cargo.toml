@@ -45,7 +45,7 @@ stream-cancel = "0.8"
 tokio = "1"
 tokio-rustls = {version = "0.23", optional = true}
 tokio-stream = {version = "0.1", features = ["net"]}
-turbosql = {version = "0.6", optional = true}
+turbosql = {version = "0.7", optional = true}
 typetag = "0.2"
 
 js-sys = {version = "0.3", optional = true}
