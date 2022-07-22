@@ -30,7 +30,11 @@ struct ConnectionLocal {
 impl syn::parse::Parse for ConnectionLocal {
  fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
   let ident = input.parse()?;
+
   let _: syn::Token![:] = input.parse()?;
+  let _: syn::Token![&] = input.parse()?;
+  let _: syn::Token![mut] = input.parse()?;
+
   let ty = input.parse()?;
   Ok(Self { ident, ty })
  }
@@ -39,6 +43,7 @@ impl syn::parse::Parse for ConnectionLocal {
 #[proc_macro]
 pub fn connection_local(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
  let ConnectionLocal { ident, ty } = parse_macro_input!(input as ConnectionLocal);
+ let ident_str = ident.to_string();
 
  quote! {
   let mut _turbocharger_connection_local_map = match _turbocharger_connection_info.as_ref() {
@@ -50,7 +55,7 @@ pub fn connection_local(input: proc_macro::TokenStream) -> proc_macro::TokenStre
    _turbocharger_connection_local_map
     .as_mut()
     .unwrap()
-    .entry(std::any::TypeId::of::< #ty >())
+    .entry(( #ident_str , std::any::TypeId::of::< #ty >()))
     .or_insert_with(|| Box::new( #ty ::default()))
     .downcast_mut::< #ty >()
     .unwrap()

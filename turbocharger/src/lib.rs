@@ -52,8 +52,10 @@ pub use js_sys;
 pub struct ConnectionInfo {
  pub remote_addr: Option<std::net::SocketAddr>,
  pub user_agent: Option<String>,
- pub connection_local:
-  std::sync::Arc<tokio::sync::Mutex<HashMap<std::any::TypeId, Box<dyn std::any::Any + Send>>>>,
+ #[allow(clippy::type_complexity)]
+ pub connection_local: std::sync::Arc<
+  tokio::sync::Mutex<HashMap<(&'static str, std::any::TypeId), Box<dyn std::any::Any + Send>>>,
+ >,
 }
 
 #[server_only]
