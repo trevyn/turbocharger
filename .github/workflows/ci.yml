@@ -47,6 +47,8 @@ jobs:
           components: clippy
           targets: wasm32-unknown-unknown
 
+      - run: cargo install dioxus-cli
+
       - run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
       - run: git clone https://github.com/trevyn/turbocharger-template-svelte.git ../turbocharger-template-svelte
@@ -57,7 +59,6 @@ jobs:
         run: cargo test -- --nocapture
         working-directory: 'turbocharger-impl'
 
-      - run: cargo install dioxus-cli
       - run: dioxus build --release
         working-directory: 'turbocharger-tests'
       - run: npm run test-ci
