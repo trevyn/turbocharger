@@ -2,4 +2,5 @@
 members = [
   "turbocharger",
   "turbocharger-impl",
+  "turbocharger-tests",
 ]

@@ -1,0 +1,10 @@
+dist
+debug_expansions
+node_modules
+src-frontend/turbocharger_generated
+target
+Cargo.lock
+**/package-lock.json
+.DS_Store
+
+# `migrations.toml` and `backend_api.rs` should be checked into source control to track changes over time.

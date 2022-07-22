@@ -57,6 +57,12 @@ jobs:
         run: cargo test -- --nocapture
         working-directory: 'turbocharger-impl'
 
+      - run: cargo install dioxus-cli
+      - run: dioxus build --release
+        working-directory: 'turbocharger-tests'
+      - run: npm run test-ci
+        working-directory: 'turbocharger-tests'
+
       - run: npm run build
         working-directory: '../turbocharger-template-svelte'
       - run: npx audit-ci --low

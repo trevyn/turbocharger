@@ -1,0 +1,31 @@
+[package]
+edition = "2021"
+name = "turbocharger-tests"
+publish = false
+version = "0.1.0"
+
+[[bin]]
+name = "server"
+path = "src/server.rs"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+# overrides for real wasm build
+wasm-bindgen = "=0.2.81" # Version to be synced with the wasm-bindgen CLI version in CI
+
+[features]
+wasm = [
+  "turbocharger/wasm",
+  "turbocharger/full",
+]
+[dependencies]
+# dependencies that are really only for wasm, but rust-analyzer uses too
+dioxus = {version = "0.2", features = ["web"]}
+
+# dependencies for both server and wasm
+turbocharger = {path = "../turbocharger", default-features = false, features = ["dioxus", "axum"]}
+turbosql = "0.6"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+# dependencies for server only
+axum = "0.5"
+tokio = {version = "1", features = ["macros", "rt-multi-thread"]}

@@ -139,7 +139,7 @@ mod axum_server;
 
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(feature = "axum")]
-pub use axum_server::serve;
+pub use axum_server::{serve, ws_handler};
 
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(all(feature = "tls", feature = "axum"))]
