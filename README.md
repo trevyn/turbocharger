@@ -47,13 +47,13 @@ A JS frontend works with any types that are [supported by](https://rustwasm.gith
 
 ## How It Works
 
-A proc macro auto-generates a frontend `wasm-bindgen` module, which serializes the frontend's function call parameters with `bincode`. These requests are sent over a shared WebSocket connection to a provided `axum` endpoint on the backend server, which calls your backend function and serializes the response. This is sent back over the WebSocket and resolves the Promise or Future returned by the original function call.
+A proc macro auto-generates a frontend `wasm-bindgen` module, which serializes the frontend's function call parameters with `bincode`. These requests are sent over a shared WebSocket connection to a provided `axum` endpoint on the backend server, which calls your backend function and serializes the response. This is sent back over the WebSocket and resolves the Promise or Future returned by the original frontend function call.
 
 Multiple async requests can be simultaneously in-flight over a single multiplexed connection; it all just works.
 
 ## Complete Example: A full SQLite-powered backend with frontend bindings
 
-See [https://github.com/trevyn/turbocharger-template](https://github.com/trevyn/turbocharger-template) for a full turnkey template repository.
+See [https://github.com/trevyn/turbocharger-template-dioxus](https://github.com/trevyn/turbocharger-template-dioxus) or [https://github.com/trevyn/turbocharger-template-svelte](https://github.com/trevyn/turbocharger-template-svelte) for a full turnkey template repository.
 
 ### `app.rs`
 
