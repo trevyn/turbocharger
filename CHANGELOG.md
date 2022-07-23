@@ -1,11 +1,18 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 - 2022-07-22
 
 ### Changed
 
-- Renamed `axum_server` feature to just `axum` thanks to Rust 1.60 namespaced features.
+- `use turbocharger::prelude::*` now imports everything needed.
+- `#[backend]` will now by default only provide a Rust WASM frontend function stub. Use `#[backend(js)]` to additionally provide a JS frontend function stub. The JS frontend is more restrictive regarding supported types.
+- Use the `remote_addr!()` and `user_agent!()` macros in `#[backend]` functions to get the remote address and user agent.
+- Renamed `axum_server` feature to `axum`.
 - MSRV is now Rust 1.62
+
+### Added
+
+- Added `connection_local!()` macro to store connection-local data in `#[backend]` functions.
 
 ## 0.3.0 - 2022-03-05
 
