@@ -8,10 +8,6 @@ version = "0.1.0"
 name = "server"
 path = "src/server.rs"
 
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-# overrides for real wasm build
-wasm-bindgen = "=0.2.81" # Version to be synced with the wasm-bindgen CLI version in CI
-
 [features]
 wasm = [
   "turbocharger/wasm",
