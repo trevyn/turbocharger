@@ -1,5 +1,6 @@
 {
  "scripts": {
-  "mdbook-open": "cd guide && mdbook serve --open"
+  "mdbook-open": "cd guide && mdbook serve --open",
+  "update-rs-deps": "cargo update"
  }
 }
