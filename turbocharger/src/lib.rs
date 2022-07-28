@@ -24,6 +24,7 @@ pub mod prelude {
  #[cfg(not(target_arch = "wasm32"))]
  pub use {
   async_stream::{stream, try_stream},
+  futures_util::StreamExt as _,
   turbocharger_impl::{connection_local, remote_addr, user_agent},
   typetag,
  };
