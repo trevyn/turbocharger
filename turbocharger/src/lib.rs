@@ -13,18 +13,20 @@ pub use turbocharger_impl::{backend, server_only, wasm_only};
 mod dioxus;
 
 pub mod prelude {
- pub use ::tracked::{self, tracked};
- pub use turbocharger_impl::{backend, server_only, wasm_only, wasm_only as frontend};
  #[cfg(any(feature = "wasm", target_arch = "wasm32"))]
  pub use {
   crate::console_log, crate::wait_ms, wasm_bindgen, wasm_bindgen::prelude::*, wasm_bindgen_futures,
  };
  #[cfg(all(feature = "dioxus", any(feature = "wasm", target_arch = "wasm32")))]
  pub use {crate::dioxus::use_stream, ::dioxus::core::to_owned, ::dioxus::prelude::*};
+ pub use {
+  ::tracked::{self, tracked},
+  futures_util::{pin_mut, StreamExt as _},
+  turbocharger_impl::{backend, server_only, wasm_only, wasm_only as frontend},
+ };
  #[cfg(not(target_arch = "wasm32"))]
  pub use {
   async_stream::{stream, try_stream},
-  futures_util::StreamExt as _,
   turbocharger_impl::{connection_local, remote_addr, user_agent},
   typetag,
  };
