@@ -1,7 +1,7 @@
 import { expect } from "@esm-bundle/chai";
 import turbocharger_init, * as backend from "../../dist/assets/dioxus/turbocharger-tests.js";
 
-it("does stuff", async () => {
+it("does stuff", async function () {
  this.timeout(10000);
  await turbocharger_init("../../dist/assets/dioxus/turbocharger-tests_bg.wasm");
  expect(await backend.run_test()).to.equal(42);
