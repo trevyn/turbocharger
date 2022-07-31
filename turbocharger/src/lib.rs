@@ -18,7 +18,9 @@ pub mod prelude {
   crate::console_log, crate::wait_ms, wasm_bindgen, wasm_bindgen::prelude::*, wasm_bindgen_futures,
  };
  #[cfg(all(feature = "dioxus", any(feature = "wasm", target_arch = "wasm32")))]
- pub use {crate::dioxus::use_stream, ::dioxus::core::to_owned, ::dioxus::prelude::*};
+ pub use {
+  crate::dioxus::use_stream, ::dioxus::core::to_owned, ::dioxus::events::*, ::dioxus::prelude::*,
+ };
  pub use {
   ::tracked::{self, tracked},
   futures_util::{pin_mut, StreamExt as _},
