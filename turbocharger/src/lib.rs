@@ -23,7 +23,7 @@ pub mod prelude {
  };
  pub use {
   ::tracked::{self, tracked},
-  futures_util::{pin_mut, StreamExt as _},
+  futures_util::{pin_mut, Stream, StreamExt as _, TryFutureExt as _},
   turbocharger_impl::{backend, server_only, wasm_only, wasm_only as frontend},
  };
  #[cfg(not(target_arch = "wasm32"))]
