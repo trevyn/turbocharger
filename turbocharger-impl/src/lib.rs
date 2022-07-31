@@ -270,6 +270,10 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
   syn::ReturnType::Default => parse_quote! { () },
  };
  let stream_inner_ty = extract::extract_stream(&orig_fn_ret_ty);
+ if stream_inner_ty.is_some() && orig_fn.sig.asyncness.is_some() {
+  abort!(orig_fn.sig.asyncness, "#[backend] functions that return a stream must not be async."; help = "Remove the `async`."
+  );
+ }
  let result_inner_ty = extract::extract_result(stream_inner_ty.unwrap_or(&orig_fn_ret_ty));
  let store_value_ty = if result_inner_ty.is_some() {
   quote! { Result<#result_inner_ty, JsValue> }
