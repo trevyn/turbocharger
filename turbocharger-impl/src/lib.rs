@@ -7,7 +7,14 @@
 #[cfg(test)]
 todo_or_die::crates_io!("bincode", ">=2");
 
+mod automod;
 mod extract;
+
+#[proc_macro]
+pub fn automod(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+ automod::dir(input)
+}
+
 use proc_macro_error::{abort, proc_macro_error};
 use quote::{format_ident, quote, quote_spanned};
 use syn::{parse_macro_input, parse_quote, spanned::Spanned};
