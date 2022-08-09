@@ -13,6 +13,8 @@ pub use turbocharger_impl::{backend, server_only, wasm_only};
 mod dioxus;
 
 pub mod prelude {
+ #[cfg(feature = "turbosql")]
+ pub use turbosql::{execute, now_ms, select, Turbosql};
  #[cfg(any(feature = "wasm", target_arch = "wasm32"))]
  pub use {
   crate::console_log, crate::wait_ms, wasm_bindgen, wasm_bindgen::prelude::*, wasm_bindgen_futures,
@@ -24,6 +26,7 @@ pub mod prelude {
  pub use {
   ::tracked::{self, tracked},
   futures_util::{pin_mut, Stream, StreamExt as _, TryFutureExt as _},
+  serde::{Deserialize, Serialize},
   turbocharger_impl::{automod, backend, server_only, wasm_only, wasm_only as frontend},
  };
  #[cfg(not(target_arch = "wasm32"))]
