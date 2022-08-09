@@ -6,10 +6,14 @@ fn main() {
  // wasm_logger::init(wasm_logger::Config::default());
  // console_error_panic_hook::set_once();
 
- turbocharger::set_socket_url("ws://localhost:8888/turbocharger_socket".into());
- dioxus::web::launch(app);
+ #[cfg(any(feature = "wasm", target_arch = "wasm32"))]
+ {
+  turbocharger::set_socket_url("ws://localhost:8888/turbocharger_socket".into());
+  dioxus::web::launch(app);
+ }
 }
 
+#[frontend]
 fn app(cx: Scope) -> Element {
  // let fut = use_future(&cx, (), |_| async move { app::run_test().await });
  // console_log!("{:?}", fut.value());
