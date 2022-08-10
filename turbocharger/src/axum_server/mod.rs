@@ -156,7 +156,9 @@ async fn handle_socket(ws: WebSocket, ua: String, addr: SocketAddr) {
     let target_func: Box<dyn crate::RPC> = match bincode::deserialize(&data) {
      Ok(target_func) => target_func,
      Err(e) => {
-      log::error!("websocket deserialize error: {} {:?}", e, msg);
+      if !matches!(msg, Message::Ping(_)) {
+       log::error!("websocket deserialize error: {} {:?}", e, msg);
+      }
       return;
      }
     };
