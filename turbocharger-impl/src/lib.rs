@@ -595,6 +595,7 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
   use turbocharger::prelude::*;
 
   #[cfg(not(target_arch = "wasm32"))]
+  #[allow(dead_code)]
   #[tracked]
   #orig_fn
 
