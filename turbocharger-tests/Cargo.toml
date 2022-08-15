@@ -5,6 +5,10 @@ publish = false
 version = "0.1.0"
 
 [[bin]]
+name = "wasm"
+path = "src/wasm.rs"
+
+[[bin]]
 name = "server"
 path = "src/server.rs"
 
