@@ -25,7 +25,7 @@ pub mod prelude {
  };
  pub use {
   ::tracked::{self, tracked},
-  futures_util::{pin_mut, Stream, StreamExt as _, TryFutureExt as _},
+  futures_util::{pin_mut, SinkExt as _, Stream, StreamExt as _, TryFutureExt as _},
   serde::{Deserialize, Serialize},
   turbocharger_impl::{automod, backend, server_only, wasm_only, wasm_only as frontend},
  };
