@@ -26,7 +26,9 @@ pub mod prelude {
  pub use {
   ::tracked::{self, tracked},
   futures_util::{pin_mut, SinkExt as _, Stream, StreamExt as _, TryFutureExt as _},
+  once_cell::sync::Lazy,
   serde::{Deserialize, Serialize},
+  std::sync::Arc,
   turbocharger_impl::{automod, backend, server_only, wasm_only, wasm_only as frontend},
  };
  #[cfg(not(target_arch = "wasm32"))]
