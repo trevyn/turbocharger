@@ -146,13 +146,7 @@ fn backend_item(args: proc_macro::TokenStream, orig_item: syn::Item) -> proc_mac
 // }
 
 fn backend_struct(orig_struct: syn::ItemStruct) -> proc_macro2::TokenStream {
- if !std::env::current_exe()
-  .unwrap()
-  .file_stem()
-  .unwrap()
-  .to_string_lossy()
-  .starts_with("rust-analyzer")
- {
+ if !is_rust_analyzer() {
   let mut api_struct = orig_struct.clone();
   api_struct.vis = parse_quote!();
   api_struct.attrs.retain(|attr| attr.path.is_ident("doc"));
@@ -234,13 +228,7 @@ fn backend_struct(orig_struct: syn::ItemStruct) -> proc_macro2::TokenStream {
 fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro2::TokenStream {
  let is_js = args.to_string() == "js";
 
- if !std::env::current_exe()
-  .unwrap()
-  .file_stem()
-  .unwrap()
-  .to_string_lossy()
-  .starts_with("rust-analyzer")
- {
+ if !is_rust_analyzer() {
   let mut api_fn = orig_fn.clone();
   api_fn.vis = parse_quote!();
   api_fn.attrs.retain(|attr| attr.path.is_ident("doc"));
@@ -726,4 +714,13 @@ fn project_root_path_with<P: AsRef<std::path::Path>>(pushpath: P) -> std::path::
  path.pop();
  path.push(pushpath);
  path
+}
+
+fn is_rust_analyzer() -> bool {
+ std::env::current_exe()
+  .unwrap()
+  .file_stem()
+  .unwrap()
+  .to_string_lossy()
+  .starts_with("rust-analyzer")
 }
