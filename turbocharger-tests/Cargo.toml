@@ -5,8 +5,8 @@ publish = false
 version = "0.1.0"
 
 [[bin]]
-name = "wasm"
-path = "src/wasm.rs"
+name = "1wasm" # dioxus-cli builds alphabetic first bin target
+path = "src/wasm.rs" 
 
 [[bin]]
 name = "server"
