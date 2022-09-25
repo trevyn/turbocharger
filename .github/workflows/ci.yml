@@ -3,7 +3,10 @@ name: ci
 on:
   push:
   pull_request:
-  schedule: [cron: '40 1 * * *']
+  schedule: [cron: "40 1 * * *"]
+
+permissions:
+  contents: read
 
 env:
   CARGO_TERM_COLOR: always
@@ -34,7 +37,6 @@ jobs:
         # branch: [main, axum]
         os: [ubuntu-latest, macos-latest]
         rust: ["1.62", stable, beta, nightly]
-#               1.62 is minimum rustc version
 
     steps:
       - uses: actions/checkout@v3
@@ -57,22 +59,22 @@ jobs:
 
       - name: cargo test turbocharger-impl
         run: cargo test -- --nocapture
-        working-directory: 'turbocharger-impl'
+        working-directory: "turbocharger-impl"
 
       - run: dioxus build --release
-        working-directory: 'turbocharger-tests'
+        working-directory: "turbocharger-tests"
       - run: npm run test-ci
-        working-directory: 'turbocharger-tests'
+        working-directory: "turbocharger-tests"
 
       - run: npm run build
-        working-directory: '../turbocharger-template-svelte'
+        working-directory: "../turbocharger-template-svelte"
       - run: npx audit-ci --low
-        working-directory: '../turbocharger-template-svelte'
+        working-directory: "../turbocharger-template-svelte"
       - run: npm run test-ci
-        working-directory: '../turbocharger-template-svelte'
+        working-directory: "../turbocharger-template-svelte"
 
       - run: cargo doc --no-deps
-        working-directory: 'turbocharger'
+        working-directory: "turbocharger"
 
   publish:
     needs: [checklinks, test]
@@ -82,7 +84,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          submodules: 'true'
+          submodules: "true"
 
       - uses: hecrj/setup-rust-action@v1
         with:
@@ -90,8 +92,8 @@ jobs:
 
       - name: cargo publish turbocharger-impl
         run: cargo publish --no-verify --allow-dirty --token ${{ secrets.CARGO_TOKEN }}
-        working-directory: 'turbocharger-impl'
+        working-directory: "turbocharger-impl"
 
       - name: cargo publish turbocharger
         run: cargo publish --no-verify --allow-dirty --token ${{ secrets.CARGO_TOKEN }}
-        working-directory: 'turbocharger'
+        working-directory: "turbocharger"
