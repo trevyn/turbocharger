@@ -10,6 +10,7 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
+  CARGO_UNSTABLE_SPARSE_REGISTRY: true
 
 jobs:
   checklinks:
@@ -34,14 +35,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # branch: [main, axum]
         os: [ubuntu-latest, macos-latest]
         rust: ["1.62", stable, beta, nightly]
 
     steps:
       - uses: actions/checkout@v3
-        # with:
-        #   ref: ${{ matrix.branch }}
 
       - uses: hecrj/setup-rust-action@v1
         with:
