@@ -47,7 +47,7 @@ jobs:
           components: clippy
           targets: wasm32-unknown-unknown
 
-      - run: cargo install --git https://github.com/DioxusLabs/cli
+      - run: cargo install --config net.retry=10 --git https://github.com/DioxusLabs/cli
 
       - run: curl --retry 10 https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
