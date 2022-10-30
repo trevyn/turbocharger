@@ -61,7 +61,7 @@ pub async fn serve(
   let (stream, peer_addr) = match listener.accept().await {
    Ok(r) => r,
    Err(e) => {
-    log::error!("{:?}", e);
+    log::error!("TcpListener::accept() failed: {:?}", e);
     continue;
    }
   };
