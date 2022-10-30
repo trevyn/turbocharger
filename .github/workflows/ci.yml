@@ -43,6 +43,7 @@ jobs:
 
       - run: rustup default ${{ matrix.rust }}
       - run: rustup target add wasm32-unknown-unknown
+      - run: rustup component add clippy
 
       - run: cargo install --config net.retry=10 --git https://github.com/DioxusLabs/cli
 
