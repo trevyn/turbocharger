@@ -41,11 +41,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: hecrj/setup-rust-action@v1
-        with:
-          rust-version: ${{ matrix.rust }}
-          components: clippy
-          targets: wasm32-unknown-unknown
+      - run: rustup default ${{ matrix.rust }}
+      - run: rustup target add wasm32-unknown-unknown
 
       - run: cargo install --config net.retry=10 --git https://github.com/DioxusLabs/cli
 
@@ -82,9 +79,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: hecrj/setup-rust-action@v1
-        with:
-          rust-version: stable
+      - run: rustup default stable
 
       - name: cargo publish turbocharger-impl
         run: cargo publish --no-verify --allow-dirty --token ${{ secrets.CARGO_TOKEN }}
