@@ -58,7 +58,13 @@ pub async fn serve(
  let listener = TcpListener::bind(addr).await?;
 
  loop {
-  let (stream, peer_addr) = listener.accept().await?;
+  let (stream, peer_addr) = match listener.accept().await {
+   Ok(r) => r,
+   Err(e) => {
+    log::error!("{:?}", e);
+    continue;
+   }
+  };
   let acceptor = acceptor.clone();
   let app = app.clone().layer(axum::extract::Extension(axum::extract::ConnectInfo(peer_addr)));
 
