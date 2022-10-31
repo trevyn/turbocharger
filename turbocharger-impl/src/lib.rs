@@ -4,16 +4,7 @@
 
 #![forbid(unsafe_code)]
 
-#[cfg(test)]
-todo_or_die::crates_io!("bincode", ">=2");
-
-mod automod;
 mod extract;
-
-#[proc_macro]
-pub fn automod(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
- automod::dir(input)
-}
 
 use proc_macro_error::{abort, proc_macro_error};
 use quote::{format_ident, quote, quote_spanned};
@@ -360,7 +351,7 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
    syn::FnArg::Receiver(_) => abort!(p, "I don't know what to do with `self` here."),
    syn::FnArg::Typed(pattype) => match *pattype.pat.clone() {
     syn::Pat::Ident(i) => i.ident,
-    _ => abort!(pattype, "Parameter name is not Ident"),
+    _ => abort!(pattype, "Parameter name is not Ident: {:?}", pattype),
    },
   })
   .collect();

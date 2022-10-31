@@ -29,7 +29,8 @@ pub mod prelude {
   once_cell::sync::Lazy,
   serde::{Deserialize, Serialize},
   std::sync::Arc,
-  turbocharger_impl::{automod, backend, server_only, wasm_only, wasm_only as frontend},
+  turbocharger_impl::{backend, server_only, wasm_only, wasm_only as frontend},
+  turbomod::dir as turbomod,
  };
  #[cfg(not(target_arch = "wasm32"))]
  pub use {
