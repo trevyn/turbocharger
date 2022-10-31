@@ -1,3 +1,4 @@
+use turbocharger::prelude::axum;
 mod app;
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 10)]

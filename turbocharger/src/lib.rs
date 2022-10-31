@@ -13,6 +13,8 @@ pub use turbocharger_impl::{backend, server_only, wasm_only};
 mod dioxus;
 
 pub mod prelude {
+ #[cfg(all(feature = "axum", not(target_arch = "wasm32")))]
+ pub use axum;
  #[cfg(feature = "turbosql")]
  pub use turbosql::{execute, now_ms, select, Turbosql};
  #[cfg(any(feature = "wasm", target_arch = "wasm32"))]

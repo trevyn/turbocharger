@@ -27,5 +27,4 @@ turbosql = "0.7"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 # dependencies for server only
-axum = "0.5"
 tokio = {version = "1", features = ["macros", "rt-multi-thread"]}
