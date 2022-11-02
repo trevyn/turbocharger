@@ -1,15 +1,15 @@
 {
- "scripts": {
-  "test-ci": "npm install && cargo build --release --bin server && { cargo run --release --bin server & } && sleep 2 && web-test-runner --puppeteer \"src-frontend/**/*.test.{js,ts}\" --node-resolve",
-  "update-rs-deps": "cargo update",
-  "update-js-deps": "rm -rf node_modules && rm -rf package-lock.json && npm install"
- },
- "devDependencies": {
-  "@esm-bundle/chai": "4.3.4-fix.0",
-  "@web/dev-server-esbuild": "^0.3",
-  "@web/test-runner": "^0.13",
-  "@web/test-runner-puppeteer": "^0.10",
-  "audit-ci": "^6"
- },
- "type": "module"
+  "scripts": {
+    "test-ci": "npm install && cargo build --release --bin server && { cargo run --release --bin server & } && sleep 2 && web-test-runner --puppeteer \"src-frontend/**/*.test.{js,ts}\" --node-resolve",
+    "update-rs-deps": "cargo update",
+    "update-js-deps": "rm -rf node_modules && rm -rf package-lock.json && npm install"
+  },
+  "devDependencies": {
+    "@esm-bundle/chai": "4.3.4-fix.0",
+    "@web/dev-server-esbuild": "^0.3",
+    "@web/test-runner": "^0.15",
+    "@web/test-runner-puppeteer": "^0.11",
+    "audit-ci": "^6"
+  },
+  "type": "module"
 }
