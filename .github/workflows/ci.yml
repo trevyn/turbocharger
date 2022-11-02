@@ -51,7 +51,9 @@ jobs:
 
       - run: git clone https://github.com/trevyn/turbocharger-template-svelte.git ../turbocharger-template-svelte
 
-      - run: echo -e "\n[patch.crates-io]\nturbocharger = {path = \"../turbocharger/turbocharger\"}" >> ../turbocharger-template-svelte/Cargo.toml
+      - run: echo "" >> ../turbocharger-template-svelte/Cargo.toml
+      - run: echo "[patch.crates-io]" >> ../turbocharger-template-svelte/Cargo.toml
+      - run: echo "turbocharger = {path = '../turbocharger/turbocharger'}" >> ../turbocharger-template-svelte/Cargo.toml
 
       - name: cargo test turbocharger-impl
         run: cargo test -- --nocapture
