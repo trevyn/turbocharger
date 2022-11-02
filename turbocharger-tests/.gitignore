@@ -1,5 +1,4 @@
 dist
-debug_expansions
 node_modules
 src-frontend/turbocharger_generated
 target

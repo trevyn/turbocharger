@@ -193,25 +193,22 @@ fn backend_struct(orig_struct: syn::ItemStruct) -> proc_macro2::TokenStream {
   }
  };
 
- #[cfg(feature = "debug_expansions")]
- {
-  std::fs::create_dir_all("debug_expansions").ok();
-  std::fs::write(
-   project_root_path_with(format!("debug_expansions/{}.rs", orig_struct.ident)),
-   prettyplease::unparse(&parse_quote!( #output )),
-  )
-  .unwrap();
+ std::fs::create_dir_all("target/generated/turbocharger").ok();
+ std::fs::write(
+  project_root_path_with(format!("target/generated/turbocharger/{}.rs", orig_struct.ident)),
+  prettyplease::unparse(&parse_quote!( #output )),
+ )
+ .unwrap();
 
-  std::process::Command::new("rustfmt")
-   .current_dir(project_root_path_with("debug_expansions"))
-   .arg("--edition")
-   .arg("2021")
-   .arg("--config")
-   .arg("tab_spaces=1")
-   .arg(format!("{}.rs", orig_struct.ident))
-   .output()
-   .unwrap();
- }
+ // std::process::Command::new("rustfmt")
+ //  .current_dir(project_root_path_with("debug_expansions"))
+ //  .arg("--edition")
+ //  .arg("2021")
+ //  .arg("--config")
+ //  .arg("tab_spaces=1")
+ //  .arg(format!("{}.rs", orig_struct.ident))
+ //  .output()
+ //  .unwrap();
 
  output
 }
@@ -649,25 +646,22 @@ fn backend_fn(args: proc_macro::TokenStream, orig_fn: syn::ItemFn) -> proc_macro
   }
  };
 
- #[cfg(feature = "debug_expansions")]
- {
-  std::fs::create_dir_all("debug_expansions").ok();
-  std::fs::write(
-   project_root_path_with(format!("debug_expansions/{}.rs", orig_fn_string)),
-   prettyplease::unparse(&parse_quote!( #output )),
-  )
-  .unwrap();
+ std::fs::create_dir_all("target/generated/turbocharger").ok();
+ std::fs::write(
+  project_root_path_with(format!("target/generated/turbocharger/{}.rs", orig_fn_string)),
+  prettyplease::unparse(&parse_quote!( #output )),
+ )
+ .unwrap();
 
-  std::process::Command::new("rustfmt")
-   .current_dir(project_root_path_with("debug_expansions"))
-   .arg("--edition")
-   .arg("2021")
-   .arg("--config")
-   .arg("tab_spaces=1")
-   .arg(format!("{}.rs", orig_fn_string))
-   .output()
-   .unwrap();
- }
+ // std::process::Command::new("rustfmt")
+ //  .current_dir(project_root_path_with("debug_expansions"))
+ //  .arg("--edition")
+ //  .arg("2021")
+ //  .arg("--config")
+ //  .arg("tab_spaces=1")
+ //  .arg(format!("{}.rs", orig_fn_string))
+ //  .output()
+ //  .unwrap();
 
  output
 }

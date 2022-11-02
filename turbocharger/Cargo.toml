@@ -56,7 +56,6 @@ ws_stream_wasm = {version = "0.7", optional = true}
 
 [features]
 axum = ["dep:axum", "rust-embed", "mime_guess"]
-debug_expansions = ["turbocharger-impl/debug_expansions"]
 default = ["console_error_panic_hook"]
 full = ["axum", "dioxus", "tls", "svelte"]
 svelte = ["turbocharger-impl/svelte"]
