@@ -4,7 +4,7 @@
 
 ### Changed
 
-- MSRV is now Rust 1.63
+- MSRV is now Rust 1.65
 
 ## 0.4.0 - 2022-07-22
 
