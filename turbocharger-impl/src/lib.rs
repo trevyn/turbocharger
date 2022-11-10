@@ -96,7 +96,7 @@ pub fn wasm_only(
  })
 }
 
-/// Apply this to a `pub async fn` to make it available (over the network) to the JS frontend. Also apply to any `struct`s used in backend function signatures.
+/// Apply this to a `pub async fn` to make it available (over the network) to the frontend. Also apply to any `struct`s used in backend function signatures. If the fn will be called from a JavaScript frontend, use `#[backend(js)]`.
 #[proc_macro_attribute]
 #[proc_macro_error]
 pub fn backend(
