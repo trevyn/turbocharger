@@ -45,7 +45,7 @@ jobs:
       - run: rustup target add wasm32-unknown-unknown
       - run: rustup component add clippy
 
-      - run: cargo install --config net.retry=10 --git https://github.com/DioxusLabs/cli
+      - run: cargo install --locked --config net.retry=10 --git https://github.com/DioxusLabs/cli
 
       - run: curl --retry 10 https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
