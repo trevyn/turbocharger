@@ -7,7 +7,6 @@ use axum::{
   ws::{Message, WebSocket, WebSocketUpgrade},
   ConnectInfo, TypedHeader,
  },
- handler::Handler,
  headers,
  http::{header, header::HeaderMap, StatusCode, Uri},
  response::{IntoResponse, Response},
@@ -25,9 +24,8 @@ use std::{
 
 /// Convenience function to run a full server with static files from `rust_embed` and the Turbocharger WebSocket.
 pub async fn serve<A: 'static + RustEmbed>(addr: &SocketAddr) {
- let app = Router::new()
-  .route("/turbocharger_socket", get(ws_handler))
-  .fallback(rust_embed_handler::<A>.into_service());
+ let app =
+  Router::new().route("/turbocharger_socket", get(ws_handler)).fallback(rust_embed_handler::<A>);
 
  Server::bind(addr).serve(app.into_make_service_with_connect_info::<SocketAddr>()).await.unwrap();
 }
@@ -35,9 +33,8 @@ pub async fn serve<A: 'static + RustEmbed>(addr: &SocketAddr) {
 /// Convenience function to run a full server with static files from `rust_embed` and the Turbocharger WebSocket.
 #[cfg(feature = "tls")]
 pub async fn serve_tls<A: 'static + RustEmbed>(addr: &SocketAddr) {
- let app = Router::new()
-  .route("/turbocharger_socket", get(ws_handler))
-  .fallback(rust_embed_handler::<A>.into_service());
+ let app =
+  Router::new().route("/turbocharger_socket", get(ws_handler)).fallback(rust_embed_handler::<A>);
 
  tls::serve(addr, app).await.unwrap();
 }
