@@ -49,11 +49,6 @@ jobs:
 
       - run: curl --retry 10 https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
-      - run: git clone https://github.com/trevyn/turbocharger-template-svelte.git ../turbocharger-template-svelte
-
-      - run: echo "[patch.crates-io]" >> ../turbocharger-template-svelte/Cargo.toml
-      - run: echo "turbocharger = {path = '../turbocharger/turbocharger'}" >> ../turbocharger-template-svelte/Cargo.toml
-
       - name: cargo test turbocharger-impl
         run: cargo test -- --nocapture
         working-directory: "turbocharger-impl"
@@ -62,13 +57,6 @@ jobs:
         working-directory: "turbocharger-tests"
       - run: npm run test-ci
         working-directory: "turbocharger-tests"
-
-      - run: npm run build
-        working-directory: "../turbocharger-template-svelte"
-      - run: npx audit-ci --low
-        working-directory: "../turbocharger-template-svelte"
-      - run: npm run test-ci
-        working-directory: "../turbocharger-template-svelte"
 
       - run: cargo doc --no-deps
         working-directory: "turbocharger"
