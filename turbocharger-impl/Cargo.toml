@@ -12,11 +12,11 @@ proc-macro = true
 
 [dependencies]
 fs2 = "0.4"
-prettyplease = "0.1"
+prettyplease = "0.2"
 proc-macro-error = "1"
 proc-macro2 = "1"
 quote = "1"
-syn = {version = "1", features = ["extra-traits", "full"]}
+syn = {version = "2", features = ["extra-traits", "full"]}
 
 [features]
 full = ["svelte"]

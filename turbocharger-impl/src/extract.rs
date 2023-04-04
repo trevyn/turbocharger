@@ -16,7 +16,7 @@ fn generic_path_with_ident<'a>(path: &'a syn::Path, ident: &str) -> Option<&'a s
  };
  match &args.first()? {
   syn::GenericArgument::Type(ty) => Some(ty),
-  syn::GenericArgument::Binding(syn::Binding { ty, .. }) => Some(ty),
+  syn::GenericArgument::AssocType(syn::AssocType { ty, .. }) => Some(ty),
   _ => None,
  }
 }
