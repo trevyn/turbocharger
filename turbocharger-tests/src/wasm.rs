@@ -9,7 +9,7 @@ fn main() {
  #[cfg(any(feature = "wasm", target_arch = "wasm32"))]
  {
   turbocharger::set_socket_url("ws://localhost:8888/turbocharger_socket".into());
-  dioxus::web::launch(app);
+  dioxus_web::launch(app);
  }
 }
 

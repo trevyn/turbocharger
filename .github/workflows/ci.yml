@@ -47,8 +47,6 @@ jobs:
 
       - run: cargo install --config net.retry=10 dioxus-cli
 
-      - run: curl --retry 10 https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-
       - name: cargo test turbocharger-impl
         run: cargo test -- --nocapture
         working-directory: "turbocharger-impl"

@@ -22,7 +22,8 @@ turbocharger-impl = {path = "../turbocharger-impl", version = "=0.4.0"}
 turbomod = "0.1"
 
 console_error_panic_hook = {version = "0.1", optional = true}
-dioxus = {version = "0.2", optional = true}
+dioxus = {version = "0.3", optional = true}
+dioxus-web = {version = "0.3", optional = true}
 turbosql = {version = "0.7", optional = true}
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
@@ -57,6 +58,7 @@ ws_stream_wasm = {version = "0.7", optional = true}
 [features]
 axum = ["dep:axum", "rust-embed", "mime_guess"]
 default = ["console_error_panic_hook"]
+dioxus = ["dep:dioxus", "dioxus-web"]
 full = ["axum", "dioxus", "tls", "svelte"]
 svelte = ["turbocharger-impl/svelte"]
 tls = ["tokio-rustls", "rustls-pemfile", "hyper", "acme-lib", "turbosql"]

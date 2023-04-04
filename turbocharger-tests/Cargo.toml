@@ -19,7 +19,7 @@ wasm = [
 ]
 [dependencies]
 # dependencies that are really only for wasm, but rust-analyzer uses too
-dioxus = {version = "0.2", features = ["web"]}
+dioxus = "0.3"
 
 # dependencies for both server and wasm
 turbocharger = {path = "../turbocharger", default-features = false, features = ["dioxus", "axum"]}
