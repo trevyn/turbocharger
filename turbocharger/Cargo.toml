@@ -35,7 +35,7 @@ ws_stream_wasm = "0.7"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 acme-lib = {version = "0.8", optional = true}
-async-stream = "0.3"
+async-stream = "0.3.4"
 async-trait = "0.1"
 axum = {version = "0.6", features = ["ws", "headers", "http2"], optional = true}
 hyper = {version = "0.14", optional = true}
