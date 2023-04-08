@@ -15,8 +15,6 @@ mod dioxus;
 pub mod prelude {
  #[cfg(all(feature = "axum", not(target_arch = "wasm32")))]
  pub use axum;
- #[cfg(feature = "turbosql")]
- pub use turbosql::{execute, now_ms, select, Turbosql};
  #[cfg(any(feature = "wasm", target_arch = "wasm32"))]
  pub use {
   crate::console_log, crate::wait_ms, wasm_bindgen, wasm_bindgen::prelude::*, wasm_bindgen_futures,
@@ -33,6 +31,11 @@ pub mod prelude {
   std::sync::Arc,
   turbocharger_impl::{backend, server_only, wasm_only, wasm_only as frontend},
   turbomod::dir as turbomod,
+ };
+ #[cfg(feature = "turbosql")]
+ pub use {
+  ::turbosql,
+  turbosql::{execute, now_ms, select, Turbosql},
  };
  #[cfg(not(target_arch = "wasm32"))]
  pub use {
