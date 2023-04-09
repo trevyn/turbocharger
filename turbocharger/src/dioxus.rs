@@ -31,6 +31,6 @@ fn test_compile_use_stream(cx: Scope) {
  fn make_stream() -> impl futures_util::Stream<Item = Vec<u8>> {
   futures_channel::mpsc::unbounded().1
  }
- let _latest = use_stream(&cx, make_stream, |s, v| *s = Some(v));
- let _vec = use_stream(&cx, make_stream, |s: &mut Vec<_>, v| s.push(v));
+ let _latest = use_stream(cx, make_stream, |s, v| *s = Some(v));
+ let _vec = use_stream(cx, make_stream, |s: &mut Vec<_>, v| s.push(v));
 }
