@@ -1,12 +1,13 @@
 {
- // "rust-analyzer.cargo.target": "wasm32-unknown-unknown",
- "rust-analyzer.checkOnSave.command": "clippy",
- "rust-analyzer.checkOnSave.features": ["full"],
- "rust-analyzer.cargo.features": ["full"],
- "css.lint.unknownAtRules": "ignore",
- "editor.tabSize": 1,
- "editor.detectIndentation": false,
- "files.insertFinalNewline": true,
- "editor.formatOnSave": true,
- "files.trimTrailingWhitespace": true
+	// "rust-analyzer.cargo.target": "wasm32-unknown-unknown",
+	"rust-analyzer.checkOnSave.command": "clippy",
+	"rust-analyzer.checkOnSave.features": ["full"],
+	"rust-analyzer.cargo.features": ["full"],
+	"css.lint.unknownAtRules": "ignore",
+	"editor.insertSpaces": false,
+	"editor.detectIndentation": false,
+	"files.insertFinalNewline": true,
+	"editor.formatOnSave": true,
+	"files.trimTrailingWhitespace": true,
+	"prettier.useTabs": true
 }
