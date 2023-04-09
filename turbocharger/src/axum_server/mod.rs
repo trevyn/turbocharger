@@ -107,6 +107,9 @@ pub async fn ws_handler(
  user_agent: Option<TypedHeader<headers::UserAgent>>,
  ConnectInfo(addr): ConnectInfo<SocketAddr>,
 ) -> impl IntoResponse {
+ #[cfg(debug_assertions)]
+ log::info!("websocket connecting from {}", addr);
+
  let ua_str =
   if let Some(TypedHeader(ua)) = user_agent { ua.as_str().into() } else { String::new() };
 
@@ -114,6 +117,9 @@ pub async fn ws_handler(
 }
 
 async fn handle_socket(ws: WebSocket, ua: String, addr: SocketAddr) {
+ #[cfg(debug_assertions)]
+ log::info!("websocket connected");
+
  let (mut ws_tx, mut ws_rx) = ws.split();
  let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
  let mut rx = tokio_stream::wrappers::UnboundedReceiverStream::new(rx);
@@ -172,5 +178,6 @@ async fn handle_socket(ws: WebSocket, ua: String, addr: SocketAddr) {
   });
  }
 
+ #[cfg(debug_assertions)]
  log::info!("websocket disconnected")
 }
