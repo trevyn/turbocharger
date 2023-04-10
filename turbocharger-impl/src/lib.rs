@@ -92,6 +92,7 @@ pub fn wasm_only(
 		use wasm_bindgen::prelude::*;
 
 		#[cfg(any(feature = "wasm", target_arch = "wasm32"))]
+		#[allow(clippy::bind_instead_of_map)]
 		#orig_item
 	})
 }
