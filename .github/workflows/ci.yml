@@ -23,7 +23,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          args: ./**/*.* --verbose --no-progress --exclude-all-private --base="http://127.0.0.1" --headers="accept=text/html" --scheme=http --scheme=https --scheme=mailto
+          args: ./**/*.* --verbose --no-progress --exclude-all-private --base="http://127.0.0.1" --header="accept=text/html" --scheme=http --scheme=https --scheme=mailto
 
       - name: Fail if there were link-check errors
         run: exit ${{ steps.lychee.outputs.exit_code }}
