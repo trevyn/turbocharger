@@ -2,6 +2,8 @@ name: ci
 
 on:
   push:
+    branches:
+      - main
   pull_request:
   schedule: [cron: "40 1 * * *"]
 
@@ -43,7 +45,6 @@ jobs:
 
       - run: rustup default ${{ matrix.rust }} && rustup update ${{ matrix.rust }}
       - run: rustup target add wasm32-unknown-unknown
-      - run: rustup component add clippy
 
       - run: cargo install --config net.retry=10 dioxus-cli
 
