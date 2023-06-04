@@ -4,3 +4,4 @@ members = [
   "turbocharger-impl",
   "turbocharger-tests",
 ]
+resolver = "2"
