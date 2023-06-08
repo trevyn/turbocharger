@@ -46,6 +46,10 @@ jobs:
       - run: rustup default ${{ matrix.rust }} && rustup update ${{ matrix.rust }}
       - run: rustup target add wasm32-unknown-unknown
 
+      - name: Enable type layout randomization
+        run: echo RUSTFLAGS=${RUSTFLAGS}\ -Zrandomize-layout >> $GITHUB_ENV
+        if: matrix.rust == 'nightly'
+
       - run: cargo install --config net.retry=10 dioxus-cli
 
       - name: cargo test turbocharger-impl
