@@ -1,5 +1,5 @@
 // Inspired by
-// https://github.com/tokio-rs/tls/blob/master/tokio-rustls/examples/server/src/main.rs
+// https://github.com/rustls/tokio-rustls/blob/main/examples/server.rs
 // and
 // https://github.com/tokio-rs/axum/blob/3b579c721504d4d64de74b414f39c3dfb33b923a/examples/tls_rustls.rs
 
