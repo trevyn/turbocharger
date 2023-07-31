@@ -37,7 +37,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        rust: ["1.65", stable, beta, nightly]
+        rust: ["1.67", stable, beta, nightly]
 
     steps:
       - uses: actions/checkout@v3
